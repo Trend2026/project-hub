@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Project Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#111318;color:#e8e8f0;font-family:system-ui,sans-serif}
+  input,select,textarea{font-family:system-ui,sans-serif}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:#1a1d27}
+  ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const SUPABASE_URL = "https://gbaoymjpeuxybovfgjfj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYW95bWpwZXV4eWJvdmZnamZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM3MzQsImV4cCI6MjA5MzAyOTczNH0.uR2tQnkr5c1i0V8dY5AmMo3iF8nfKYXTdW5ohW22zgo";
+const HEADERS = {"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
+
+async function dbLoad() {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/projects?select=*`,{headers:HEADERS});
+  if(!r.ok) return [];
+  const rows = await r.json();
+  return rows.map(row=>row.data);
+}
+async function dbSave(project) {
+  await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project.id}`,{method:"DELETE",headers:HEADERS});
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/projects`,{
+    method:"POST",headers:{...HEADERS,Prefer:"return=minimal"},
+    body:JSON.stringify({id:project.id,data:project,updated_at:new Date().toISOString()})
+  });
+  if(!r.ok){const e=await r.text();throw new Error(e);}
+}
+async function dbDelete(id) {
+  await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${id}`,{method:"DELETE",headers:HEADERS});
+}
+
+const STATUS_CONFIG = {
+  active:{label:"Active",bg:"#1D9E75",text:"#E1F5EE"},
+  inprogress:{label:"In Progress",bg:"#378ADD",text:"#E6F1FB"},
+  onhold:{label:"On Hold",bg:"#BA7517",text:"#FAEEDA"},
+  complete:{label:"Complete",bg:"#639922",text:"#EAF3DE"},
+  review:{label:"Review",bg:"#7F77DD",text:"#EEEDFE"},
+};
+const TASK_STATUS=["todo","inprogress","done","blocked"];
+const TASK_STATUS_LABEL={todo:"To Do",inprogress:"In Progress",done:"Done",blocked:"Blocked"};
+const TASK_STATUS_COLOR={todo:"#888780",inprogress:"#378ADD",done:"#639922",blocked:"#E24B4A"};
+const PROJECT_COLORS=["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56"];
+
+const uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>new Date().toISOString().slice(0,10);
+const addDays=(d,n)=>{const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);};
+
+function ProgressBar({tasks,color}){
+  const done=tasks.filter(t=>t.status==="done").length;
+  const pct=tasks.length?Math.round((done/tasks.length)*100):0;
+  return(
+    <div style={{marginTop:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#888",marginBottom:3}}>
+        <span>{done}/{tasks.length} tasks</span><span>{pct}%</span>
+      </div>
+      <div style={{height:4,borderRadius:2,background:"rgba(255,255,255,0.12)"}}>
+        <div style={{height:4,borderRadius:2,background:color,width:`${pct}%`,transition:"width .4s"}}/>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({status}){
+  const c=STATUS_CONFIG[status]||STATUS_CONFIG.active;
+  return <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:99,background:c.bg,color:c.text,textTransform:"uppercase",letterSpacing:0.5}}>{c.label}</span>;
+}
+
+function GanttChart({tasks}){
+  if(!tasks.length)return <div style={{color:"#666",fontSize:13,padding:"12px 0"}}>No tasks yet.</div>;
+  const dates=tasks.flatMap(t=>[new Date(t.start),new Date(t.end)]);
+  const minD=new Date(Math.min(...dates));const maxD=new Date(Math.max(...dates));
+  const span=Math.max((maxD-minD)/86400000,1);
+  const pct=d=>Math.max(0,((new Date(d)-minD)/86400000/span)*100);
+  const wid=(s,e)=>Math.max(2,((new Date(e)-new Date(s))/86400000/span)*100);
+  const fmtD=d=>{const dt=new Date(d);return `${dt.getDate()} ${dt.toLocaleString('default',{month:'short'})}`;};
+  const todayPct=((new Date()-minD)/86400000/span)*100;
+  return(
+    <div style={{overflowX:"auto"}}>
+      <div style={{minWidth:480}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:8,padding:"0 0 0 140px"}}>
+          <span>{fmtD(minD.toISOString())}</span><span>{fmtD(maxD.toISOString())}</span>
+        </div>
+        <div style={{position:"relative"}}>
+          {todayPct>=0&&todayPct<=100&&(
+            <div style={{position:"absolute",left:`calc(140px + ${todayPct}% * (100% - 140px) / 100)`,top:0,bottom:0,width:1,background:"rgba(210,80,80,0.5)",zIndex:2,pointerEvents:"none"}}/>
+          )}
+          {tasks.map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",marginBottom:6,minHeight:28}}>
+              <div style={{width:130,minWidth:130,fontSize:12,color:"#bbb",paddingRight:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</div>
+              <div style={{flex:1,position:"relative",height:18,background:"rgba(255,255,255,0.05)",borderRadius:3}}>
+                <div style={{position:"absolute",left:`${pct(t.start)}%`,width:`${wid(t.start,t.end)}%`,height:"100%",borderRadius:3,minWidth:4,
+                  background:t.status==="done"?"#639922":t.status==="inprogress"?"#378ADD":t.status==="blocked"?"#E24B4A":"#888",
+                  display:"flex",alignItems:"center",paddingLeft:6,overflow:"hidden"}}>
+                  <span style={{fontSize:10,color:"rgba(255,255,255,0.8)",whiteSpace:"nowrap"}}>{TASK_STATUS_LABEL[t.status]}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:16,marginTop:10,flexWrap:"wrap"}}>
+          {Object.entries(TASK_STATUS_COLOR).map(([s,c])=>(
+            <span key={s} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#aaa"}}>
+              <span style={{width:10,height:10,borderRadius:2,background:c,display:"inline-block"}}/>{TASK_STATUS_LABEL[s]}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SyncIndicator({status}){
+  const map={idle:"",saving:"⏳ Saving...",saved:"✅ Saved",error:"❌ Sync error"};
+  const col={idle:"transparent",saving:"#BA7517",saved:"#1D9E75",error:"#E24B4A"};
+  if(status==="idle")return null;
+  return <span style={{fontSize:11,color:col[status],marginLeft:12}}>{map[status]}</span>;
+}
+
+function App(){
+  const [projects,setProjects]=React.useState([]);
+  const [loading,setLoading]=React.useState(true);
+  const [syncStatus,setSyncStatus]=React.useState("idle");
+  const [view,setView]=React.useState("home");
+  const [activeId,setActiveId]=React.useState(null);
+  const [showAddProject,setShowAddProject]=React.useState(false);
+  const [newProj,setNewProj]=React.useState({name:"",description:"",color:PROJECT_COLORS[0],status:"active"});
+  const [showAddTask,setShowAddTask]=React.useState(false);
+  const [newTask,setNewTask]=React.useState({name:"",status:"todo",start:today(),end:addDays(today(),7)});
+  const [editingTask,setEditingTask]=React.useState(null);
+  const [confirmDelete,setConfirmDelete]=React.useState(null);
+
+  React.useEffect(()=>{
+    dbLoad().then(data=>{
+      setProjects(data&&data.length>0?data:[]);
+      setLoading(false);
+    }).catch(()=>setLoading(false));
+  },[]);
+
+  const persist=React.useCallback(async(proj,all)=>{
+    setSyncStatus("saving");
+    try{await dbSave(proj);setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
+    catch(e){setSyncStatus("error");}
+  },[]);
+
+  const project=projects.find(p=>p.id===activeId);
+  const overdue=projects.flatMap(p=>p.tasks).filter(t=>t.status!=="done"&&t.end<today()).length;
+  const dueThisWeek=projects.flatMap(p=>p.tasks).filter(t=>t.status!=="done"&&t.end>=today()&&t.end<=addDays(today(),7)).length;
+  const totalTasks=projects.flatMap(p=>p.tasks).length;
+
+  const openProject=id=>{setActiveId(id);setView("detail");};
+  const goHome=()=>{setView("home");setActiveId(null);setShowAddTask(false);setEditingTask(null);};
+
+  const addProject=async()=>{
+    if(!newProj.name.trim())return;
+    const p={...newProj,id:uid(),tasks:[]};
+    const updated=[...projects,p];
+    setProjects(updated);
+    setNewProj({name:"",description:"",color:PROJECT_COLORS[0],status:"active"});
+    setShowAddProject(false);
+    await persist(p);
+  };
+
+  const deleteProject=async id=>{
+    setProjects(prev=>prev.filter(p=>p.id!==id));
+    setConfirmDelete(null);
+    setSyncStatus("saving");
+    try{await dbDelete(id);setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
+    catch(e){setSyncStatus("error");}
+  };
+
+  const updateProject=async(id,changes)=>{
+    let updated;
+    setProjects(prev=>prev.map(p=>{if(p.id===id){updated={...p,...changes};return updated;}return p;}));
+    if(updated)await persist(updated);
+  };
+
+  const addTask=async()=>{
+    if(!newTask.name.trim())return;
+    const t={...newTask,id:uid()};
+    let updated;
+    setProjects(prev=>prev.map(p=>{if(p.id===activeId){updated={...p,tasks:[...p.tasks,t]};return updated;}return p;}));
+    setNewTask({name:"",status:"todo",start:today(),end:addDays(today(),7)});
+    setShowAddTask(false);
+    if(updated)await persist(updated);
+  };
+
+  const deleteTask=async tid=>{
+    let updated;
+    setProjects(prev=>prev.map(p=>{if(p.id===activeId){updated={...p,tasks:p.tasks.filter(t=>t.id!==tid)};return updated;}return p;}));
+    if(updated)await persist(updated);
+  };
+
+  const updateTask=async(tid,changes)=>{
+    let updated;
+    setProjects(prev=>prev.map(p=>{if(p.id===activeId){updated={...p,tasks:p.tasks.map(t=>t.id===tid?{...t,...changes}:t)};return updated;}return p;}));
+    if(updated)await persist(updated);
+  };
+
+  const saveEditTask=async()=>{
+    if(!editingTask)return;
+    await updateTask(editingTask.id,editingTask);
+    setEditingTask(null);
+  };
+
+  const nextTask=p=>p.tasks.find(t=>t.status!=="done")||p.tasks[0];
+
+  const s={
+    wrap:{fontFamily:"system-ui,sans-serif",minHeight:"100vh",background:"#111318",color:"#e8e8f0",paddingBottom:40},
+    topBar:{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"},
+    statBar:{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"},
+    statCard:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,padding:"12px 18px",minWidth:110},
+    grid:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16,padding:"20px 24px 0"},
+    card:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:14,padding:"18px",cursor:"pointer",transition:"border-color .2s,transform .15s"},
+    btn:{background:"#7F77DD",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:13,fontWeight:500,cursor:"pointer"},
+    btnSm:{background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"},
+    input:{background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%",boxSizing:"border-box"},
+    select:{background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%"},
+    modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100},
+    modalBox:{background:"#1a1d27",border:"1px solid #2d3045",borderRadius:16,padding:"24px",width:400,maxWidth:"95vw"},
+    label:{fontSize:12,color:"#888",marginBottom:4,display:"block"},
+    sectionTitle:{fontSize:13,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12},
+    taskRow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"#111318",borderRadius:9,marginBottom:7,border:"1px solid #222"},
+  };
+
+  if(loading)return(
+    <div style={{...s.wrap,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+      <div style={{width:36,height:36,border:"3px solid #2a2d3a",borderTop:"3px solid #7F77DD",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <span style={{color:"#666",fontSize:13}}>Loading your projects...</span>
+    </div>
+  );
+
+  return(
+    <div style={s.wrap}>
+      <div style={s.topBar}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {view==="detail"&&<button style={{...s.btnSm,marginRight:4}} onClick={goHome}>← Back</button>}
+          {view==="home"
+            ?<span style={{fontWeight:600,fontSize:17,color:"#fff"}}>Project Hub</span>
+            :<input value={project?.name||""} onChange={e=>updateProject(project.id,{name:e.target.value})}
+              style={{background:"transparent",border:"none",borderBottom:"1px solid #444",color:"#fff",fontSize:17,fontWeight:600,outline:"none",padding:"2px 4px",minWidth:180}}/>
+          }
+          {view==="detail"&&project&&(
+            <select value={project.status} onChange={e=>updateProject(project.id,{status:e.target.value})}
+              style={{...s.select,width:"auto",fontSize:12,padding:"4px 8px",marginLeft:8}}>
+              {Object.entries(STATUS_CONFIG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+            </select>
+          )}
+          <SyncIndicator status={syncStatus}/>
+        </div>
+        {view==="home"&&<button style={s.btn} onClick={()=>setShowAddProject(true)}>+ New Project</button>}
+        {view==="detail"&&<button style={{...s.btn,background:"#1D9E75"}} onClick={()=>setShowAddTask(true)}>+ Add Task</button>}
+      </div>
+
+      {view==="home"&&(
+        <>
+          <div style={s.statBar}>
+            <div style={s.statCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
+            <div style={s.statCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalTasks}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
+            <div style={{...s.statCard,borderColor:dueThisWeek?"#378ADD44":"#2a2d3a"}}>
+              <div style={{fontSize:22,fontWeight:600,color:dueThisWeek?"#378ADD":"#fff"}}>{dueThisWeek}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Due This Week</div>
+            </div>
+            <div style={{...s.statCard,borderColor:overdue?"#E24B4A55":"#2a2d3a"}}>
+              <div style={{fontSize:22,fontWeight:600,color:overdue?"#E24B4A":"#fff"}}>{overdue}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Overdue</div>
+            </div>
+          </div>
+          <div style={s.grid}>
+            {projects.map(p=>{
+              const nt=nextTask(p);
+              const isOverdue=p.tasks.some(t=>t.status!=="done"&&t.end<today());
+              return(
+                <div key={p.id} style={{...s.card,borderColor:isOverdue?"#E24B4A44":"#2a2d3a"}}
+                  onClick={()=>openProject(p.id)}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=p.color;e.currentTarget.style.transform="translateY(-2px)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=isOverdue?"#E24B4A44":"#2a2d3a";e.currentTarget.style.transform="";}}
+                >
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                      <span style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}/>
+                      <span style={{fontWeight:600,fontSize:15,color:"#fff"}}>{p.name}</span>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <StatusBadge status={p.status}/>
+                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:14,padding:"2px 4px"}}
+                        onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{fontSize:12,color:"#888",lineHeight:1.5,marginBottom:10}}>{p.description||<span style={{fontStyle:"italic",color:"#555"}}>No description</span>}</div>
+                  {nt&&(
+                    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#bbb",borderLeft:`3px solid ${p.color}`}}>
+                      <span style={{color:"#666",fontSize:11}}>NEXT: </span>{nt.name}
+                      <span style={{marginLeft:6,fontSize:10,color:TASK_STATUS_COLOR[nt.status]}}>{TASK_STATUS_LABEL[nt.status]}</span>
+                    </div>
+                  )}
+                  <ProgressBar tasks={p.tasks} color={p.color}/>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {view==="detail"&&project&&(
+        <div style={{padding:"20px 24px"}}>
+          <div style={{marginBottom:20,background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"14px 18px"}}>
+            <div style={s.sectionTitle}>Description</div>
+            <textarea value={project.description} onChange={e=>updateProject(project.id,{description:e.target.value})}
+              style={{...s.input,resize:"vertical",minHeight:56,background:"transparent",border:"none",padding:0,fontSize:13,color:"#ccc"}}
+              placeholder="Add a project description..."/>
+          </div>
+          <div style={{marginBottom:24}}>
+            <div style={s.sectionTitle}>Tasks</div>
+            {project.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet — add one above.</div>}
+            {project.tasks.map(t=>{
+              const isOD=t.status!=="done"&&t.end<today();
+              return(
+                <div key={t.id} style={{...s.taskRow,borderColor:isOD?"#E24B4A44":"#222"}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:TASK_STATUS_COLOR[t.status],display:"inline-block",flexShrink:0}}/>
+                  <span style={{flex:1,fontSize:13,color:"#e0e0e0"}}>{t.name}</span>
+                  <span style={{fontSize:11,color:"#666"}}>{t.start} → {t.end}</span>
+                  {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
+                  <select value={t.status} onChange={e=>updateTask(t.id,{status:e.target.value})}
+                    style={{...s.select,width:"auto",fontSize:11,padding:"3px 6px",color:TASK_STATUS_COLOR[t.status]}}>
+                    {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
+                  </select>
+                  <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
+                    onClick={()=>setEditingTask({...t})}>Edit</button>
+                  <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
+                    onClick={()=>deleteTask(t.id)}>✕</button>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"16px 18px"}}>
+            <div style={s.sectionTitle}>Gantt Chart</div>
+            <GanttChart tasks={project.tasks}/>
+          </div>
+        </div>
+      )}
+
+      {showAddProject&&(
+        <div style={s.modal} onClick={()=>setShowAddProject(false)}>
+          <div style={s.modalBox} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>New Project</div>
+            <div style={{marginBottom:12}}><label style={s.label}>Project Name</label>
+              <input style={s.input} value={newProj.name} onChange={e=>setNewProj(p=>({...p,name:e.target.value}))} placeholder="e.g. Website Redesign"/></div>
+            <div style={{marginBottom:12}}><label style={s.label}>Description</label>
+              <textarea style={{...s.input,resize:"vertical",minHeight:60}} value={newProj.description} onChange={e=>setNewProj(p=>({...p,description:e.target.value}))} placeholder="Short summary..."/></div>
+            <div style={{marginBottom:12,display:"flex",gap:12}}>
+              <div style={{flex:1}}><label style={s.label}>Status</label>
+                <select style={s.select} value={newProj.status} onChange={e=>setNewProj(p=>({...p,status:e.target.value}))}>
+                  {Object.entries(STATUS_CONFIG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+                </select></div>
+              <div><label style={s.label}>Colour</label>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                  {PROJECT_COLORS.map(c=>(
+                    <div key={c} onClick={()=>setNewProj(p=>({...p,color:c}))}
+                      style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",border:newProj.color===c?"2px solid #fff":"2px solid transparent"}}/>
+                  ))}
+                </div></div>
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
+              <button style={s.btnSm} onClick={()=>setShowAddProject(false)}>Cancel</button>
+              <button style={s.btn} onClick={addProject}>Create Project</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddTask&&(
+        <div style={s.modal} onClick={()=>setShowAddTask(false)}>
+          <div style={s.modalBox} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Add Task</div>
+            <div style={{marginBottom:12}}><label style={s.label}>Task Name</label>
+              <input style={s.input} value={newTask.name} onChange={e=>setNewTask(t=>({...t,name:e.target.value}))} placeholder="e.g. Write copy"/></div>
+            <div style={{marginBottom:12,display:"flex",gap:10}}>
+              <div style={{flex:1}}><label style={s.label}>Start</label>
+                <input type="date" style={s.input} value={newTask.start} onChange={e=>setNewTask(t=>({...t,start:e.target.value}))}/></div>
+              <div style={{flex:1}}><label style={s.label}>End</label>
+                <input type="date" style={s.input} value={newTask.end} onChange={e=>setNewTask(t=>({...t,end:e.target.value}))}/></div>
+            </div>
+            <div style={{marginBottom:12}}><label style={s.label}>Status</label>
+              <select style={s.select} value={newTask.status} onChange={e=>setNewTask(t=>({...t,status:e.target.value}))}>
+                {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
+              </select></div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
+              <button style={s.btnSm} onClick={()=>setShowAddTask(false)}>Cancel</button>
+              <button style={s.btn} onClick={addTask}>Add Task</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingTask&&(
+        <div style={s.modal} onClick={()=>setEditingTask(null)}>
+          <div style={s.modalBox} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Edit Task</div>
+            <div style={{marginBottom:12}}><label style={s.label}>Task Name</label>
+              <input style={s.input} value={editingTask.name} onChange={e=>setEditingTask(t=>({...t,name:e.target.value}))}/></div>
+            <div style={{marginBottom:12,display:"flex",gap:10}}>
+              <div style={{flex:1}}><label style={s.label}>Start</label>
+                <input type="date" style={s.input} value={editingTask.start} onChange={e=>setEditingTask(t=>({...t,start:e.target.value}))}/></div>
+              <div style={{flex:1}}><label style={s.label}>End</label>
+                <input type="date" style={s.input} value={editingTask.end} onChange={e=>setEditingTask(t=>({...t,end:e.target.value}))}/></div>
+            </div>
+            <div style={{marginBottom:12}}><label style={s.label}>Status</label>
+              <select style={s.select} value={editingTask.status} onChange={e=>setEditingTask(t=>({...t,status:e.target.value}))}>
+                {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
+              </select></div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
+              <button style={s.btnSm} onClick={()=>setEditingTask(null)}>Cancel</button>
+              <button style={s.btn} onClick={saveEditTask}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete&&(
+        <div style={s.modal} onClick={()=>setConfirmDelete(null)}>
+          <div style={{...s.modalBox,width:320}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:10}}>Delete Project?</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:20}}>This will permanently remove the project and all its tasks.</div>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button style={s.btnSm} onClick={()=>setConfirmDelete(null)}>Cancel</button>
+              <button style={{...s.btn,background:"#E24B4A"}} onClick={()=>deleteProject(confirmDelete)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
