@@ -25,22 +25,25 @@ const SUPABASE_URL = "https://gbaoymjpeuxybovfgjfj.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYW95bWpwZXV4eWJvdmZnamZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM3MzQsImV4cCI6MjA5MzAyOTczNH0.uR2tQnkr5c1i0V8dY5AmMo3iF8nfKYXTdW5ohW22zgo";
 const HEADERS = {"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
 
+const ALL_KEY = "all_projects";
+
 async function dbLoad() {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/projects?select=*`,{headers:HEADERS});
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${ALL_KEY}&select=*`,{headers:HEADERS});
   if(!r.ok) return [];
   const rows = await r.json();
-  return rows.map(row=>row.data);
+  if(!rows.length) return [];
+  return JSON.parse(rows[0].data);
 }
-async function dbSave(project) {
-  await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${project.id}`,{method:"DELETE",headers:HEADERS});
+
+async function dbSaveAll(projects) {
+  // Delete existing record then insert fresh
+  await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${ALL_KEY}`,{method:"DELETE",headers:HEADERS});
   const r = await fetch(`${SUPABASE_URL}/rest/v1/projects`,{
-    method:"POST",headers:{...HEADERS,Prefer:"return=minimal"},
-    body:JSON.stringify({id:project.id,data:project,updated_at:new Date().toISOString()})
+    method:"POST",
+    headers:{...HEADERS,Prefer:"return=minimal"},
+    body:JSON.stringify({id:ALL_KEY, data:JSON.stringify(projects), updated_at:new Date().toISOString()})
   });
   if(!r.ok){const e=await r.text();throw new Error(e);}
-}
-async function dbDelete(id) {
-  await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${id}`,{method:"DELETE",headers:HEADERS});
 }
 
 const STATUS_CONFIG = {
@@ -150,10 +153,10 @@ function App(){
     }).catch(()=>setLoading(false));
   },[]);
 
-  const persist=React.useCallback(async(proj,all)=>{
+  const persist=React.useCallback(async(updated)=>{
     setSyncStatus("saving");
-    try{await dbSave(proj);setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
-    catch(e){setSyncStatus("error");}
+    try{await dbSaveAll(updated);setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
+    catch(e){setSyncStatus("error");console.error(e);}
   },[]);
 
   const project=projects.find(p=>p.id===activeId);
@@ -171,43 +174,42 @@ function App(){
     setProjects(updated);
     setNewProj({name:"",description:"",color:PROJECT_COLORS[0],status:"active"});
     setShowAddProject(false);
-    await persist(p);
+    await persist(updated);
   };
 
   const deleteProject=async id=>{
-    setProjects(prev=>prev.filter(p=>p.id!==id));
+    const updated=projects.filter(p=>p.id!==id);
+    setProjects(updated);
     setConfirmDelete(null);
-    setSyncStatus("saving");
-    try{await dbDelete(id);setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
-    catch(e){setSyncStatus("error");}
+    await persist(updated);
   };
 
   const updateProject=async(id,changes)=>{
-    let updated;
-    setProjects(prev=>prev.map(p=>{if(p.id===id){updated={...p,...changes};return updated;}return p;}));
-    if(updated)await persist(updated);
+    const updated=projects.map(p=>p.id===id?{...p,...changes}:p);
+    setProjects(updated);
+    await persist(updated);
   };
 
   const addTask=async()=>{
     if(!newTask.name.trim())return;
     const t={...newTask,id:uid()};
-    let updated;
-    setProjects(prev=>prev.map(p=>{if(p.id===activeId){updated={...p,tasks:[...p.tasks,t]};return updated;}return p;}));
+    const updated=projects.map(p=>p.id===activeId?{...p,tasks:[...p.tasks,t]}:p);
+    setProjects(updated);
     setNewTask({name:"",status:"todo",start:today(),end:addDays(today(),7)});
     setShowAddTask(false);
-    if(updated)await persist(updated);
+    await persist(updated);
   };
 
   const deleteTask=async tid=>{
-    let updated;
-    setProjects(prev=>prev.map(p=>{if(p.id===activeId){updated={...p,tasks:p.tasks.filter(t=>t.id!==tid)};return updated;}return p;}));
-    if(updated)await persist(updated);
+    const updated=projects.map(p=>p.id===activeId?{...p,tasks:p.tasks.filter(t=>t.id!==tid)}:p);
+    setProjects(updated);
+    await persist(updated);
   };
 
   const updateTask=async(tid,changes)=>{
-    let updated;
-    setProjects(prev=>prev.map(p=>{if(p.id===activeId){updated={...p,tasks:p.tasks.map(t=>t.id===tid?{...t,...changes}:t)};return updated;}return p;}));
-    if(updated)await persist(updated);
+    const updated=projects.map(p=>p.id===activeId?{...p,tasks:p.tasks.map(t=>t.id===tid?{...t,...changes}:t)}:p);
+    setProjects(updated);
+    await persist(updated);
   };
 
   const saveEditTask=async()=>{
