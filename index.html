@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -328,20 +328,47 @@ function App(){
             {project.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet — add one above.</div>}
             {project.tasks.map(t=>{
               const isOD=t.status!=="done"&&t.end<today();
+              const subtasks=t.subtasks||[];
+              const subDone=subtasks.filter(s=>s.done).length;
               return(
-                <div key={t.id} style={{...s.taskRow,borderColor:isOD?"#E24B4A44":"#222"}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:TASK_STATUS_COLOR[t.status],display:"inline-block",flexShrink:0}}/>
-                  <span style={{flex:1,fontSize:13,color:"#e0e0e0"}}>{t.name}</span>
-                  <span style={{fontSize:11,color:"#666"}}>{t.start} → {t.end}</span>
-                  {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
-                  <select value={t.status} onChange={e=>updateTask(t.id,{status:e.target.value})}
-                    style={{...s.select,width:"auto",fontSize:11,padding:"3px 6px",color:TASK_STATUS_COLOR[t.status]}}>
-                    {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
-                  </select>
-                  <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
-                    onClick={()=>setEditingTask({...t})}>Edit</button>
-                  <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
-                    onClick={()=>deleteTask(t.id)}>✕</button>
+                <div key={t.id}>
+                  <div style={{...s.taskRow,borderColor:isOD?"#E24B4A44":"#222"}}>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:TASK_STATUS_COLOR[t.status],display:"inline-block",flexShrink:0}}/>
+                    <span style={{flex:1,fontSize:13,color:"#e0e0e0"}}>{t.name}
+                      {subtasks.length>0&&<span style={{marginLeft:8,fontSize:10,color:"#666"}}>{subDone}/{subtasks.length} subtasks</span>}
+                    </span>
+                    <span style={{fontSize:11,color:"#666"}}>{t.start} → {t.end}</span>
+                    {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
+                    <select value={t.status} onChange={e=>updateTask(t.id,{status:e.target.value})}
+                      style={{...s.select,width:"auto",fontSize:11,padding:"3px 6px",color:TASK_STATUS_COLOR[t.status]}}>
+                      {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
+                    </select>
+                    <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
+                      onClick={()=>updateTask(t.id,{subtasks:[...(t.subtasks||[]),{id:uid(),name:"New subtask",done:false}]})}>+ Sub</button>
+                    <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
+                      onClick={()=>setEditingTask({...t})}>Edit</button>
+                    <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
+                      onClick={()=>deleteTask(t.id)}>✕</button>
+                  </div>
+                  {subtasks.length>0&&(
+                    <div style={{marginLeft:24,marginBottom:6}}>
+                      {subtasks.map(st=>(
+                        <div key={st.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}>
+                          <input type="checkbox" checked={st.done} onChange={e=>{
+                            const updated=(t.subtasks||[]).map(s=>s.id===st.id?{...s,done:e.target.checked}:s);
+                            updateTask(t.id,{subtasks:updated});
+                          }} style={{cursor:"pointer",accentColor:"#1D9E75"}}/>
+                          <input value={st.name} onChange={e=>{
+                            const updated=(t.subtasks||[]).map(s=>s.id===st.id?{...s,name:e.target.value}:s);
+                            updateTask(t.id,{subtasks:updated});
+                          }} onBlur={()=>persist(projects.map(p=>p.id===activeId?p:p))}
+                          style={{flex:1,background:"transparent",border:"none",color:st.done?"#555":"#bbb",fontSize:12,outline:"none",textDecoration:st.done?"line-through":"none"}}/>
+                          <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
+                            onClick={()=>updateTask(t.id,{subtasks:(t.subtasks||[]).filter(s=>s.id!==st.id)})}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
