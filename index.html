@@ -8,45 +8,43 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#111318;color:#e8e8f0;font-family:system-ui,sans-serif}
-  input,select,textarea{font-family:system-ui,sans-serif}
-  ::-webkit-scrollbar{width:6px;height:6px}
-  ::-webkit-scrollbar-track{background:#1a1d27}
-  ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
-  @keyframes spin{to{transform:rotate(360deg)}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111318;color:#e8e8f0;font-family:system-ui,sans-serif}
+input,select,textarea{font-family:system-ui,sans-serif}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#1a1d27}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-const SUPABASE_URL = "https://gbaoymjpeuxybovfgjfj.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYW95bWpwZXV4eWJvdmZnamZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM3MzQsImV4cCI6MjA5MzAyOTczNH0.uR2tQnkr5c1i0V8dY5AmMo3iF8nfKYXTdW5ohW22zgo";
-const HEADERS = {"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
+const SUPABASE_URL="https://gbaoymjpeuxybovfgjfj.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYW95bWpwZXV4eWJvdmZnamZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM3MzQsImV4cCI6MjA5MzAyOTczNH0.uR2tQnkr5c1i0V8dY5AmMo3iF8nfKYXTdW5ohW22zgo";
+const HEADERS={"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`};
+const ALL_KEY="all_projects";
 
-const ALL_KEY = "all_projects";
-
-async function dbLoad() {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${ALL_KEY}&select=*`,{headers:HEADERS});
-  if(!r.ok) return [];
-  const rows = await r.json();
-  if(!rows.length) return [];
+async function dbLoad(){
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${ALL_KEY}&select=*`,{headers:HEADERS});
+  if(!r.ok)return[];
+  const rows=await r.json();
+  if(!rows.length)return[];
   return JSON.parse(rows[0].data);
 }
 
-async function dbSaveAll(projects) {
-  // Delete existing record then insert fresh
+async function dbSaveAll(projects){
   await fetch(`${SUPABASE_URL}/rest/v1/projects?id=eq.${ALL_KEY}`,{method:"DELETE",headers:HEADERS});
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/projects`,{
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/projects`,{
     method:"POST",
     headers:{...HEADERS,Prefer:"return=minimal"},
-    body:JSON.stringify({id:ALL_KEY, data:JSON.stringify(projects), updated_at:new Date().toISOString()})
+    body:JSON.stringify({id:ALL_KEY,data:JSON.stringify(projects),updated_at:new Date().toISOString()})
   });
   if(!r.ok){const e=await r.text();throw new Error(e);}
 }
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG={
   active:{label:"Active",bg:"#1D9E75",text:"#E1F5EE"},
   inprogress:{label:"In Progress",bg:"#378ADD",text:"#E6F1FB"},
   onhold:{label:"On Hold",bg:"#BA7517",text:"#FAEEDA"},
@@ -85,16 +83,17 @@ function StatusBadge({status}){
 function GanttChart({tasks}){
   if(!tasks.length)return <div style={{color:"#666",fontSize:13,padding:"12px 0"}}>No tasks yet.</div>;
   const dates=tasks.flatMap(t=>[new Date(t.start),new Date(t.end)]);
-  const minD=new Date(Math.min(...dates));const maxD=new Date(Math.max(...dates));
+  const minD=new Date(Math.min(...dates));
+  const maxD=new Date(Math.max(...dates));
   const span=Math.max((maxD-minD)/86400000,1);
   const pct=d=>Math.max(0,((new Date(d)-minD)/86400000/span)*100);
   const wid=(s,e)=>Math.max(2,((new Date(e)-new Date(s))/86400000/span)*100);
-  const fmtD=d=>{const dt=new Date(d);return `${dt.getDate()} ${dt.toLocaleString('default',{month:'short'})}`;};
+  const fmtD=d=>{const dt=new Date(d);return `${dt.getDate()} ${dt.toLocaleString("default",{month:"short"})}`;};
   const todayPct=((new Date()-minD)/86400000/span)*100;
   return(
     <div style={{overflowX:"auto"}}>
       <div style={{minWidth:480}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:8,padding:"0 0 0 140px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:8,paddingLeft:140}}>
           <span>{fmtD(minD.toISOString())}</span><span>{fmtD(maxD.toISOString())}</span>
         </div>
         <div style={{position:"relative"}}>
@@ -106,7 +105,7 @@ function GanttChart({tasks}){
               <div style={{width:130,minWidth:130,fontSize:12,color:"#bbb",paddingRight:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</div>
               <div style={{flex:1,position:"relative",height:18,background:"rgba(255,255,255,0.05)",borderRadius:3}}>
                 <div style={{position:"absolute",left:`${pct(t.start)}%`,width:`${wid(t.start,t.end)}%`,height:"100%",borderRadius:3,minWidth:4,
-                  background:t.status==="done"?"#639922":t.status==="inprogress"?"#378ADD":t.status==="blocked"?"#E24B4A":"#888",
+                  background:t.status==="done"?"#639922":t.status==="inprogress"?"#378ADD":"#888",
                   display:"flex",alignItems:"center",paddingLeft:6,overflow:"hidden"}}>
                   <span style={{fontSize:10,color:"rgba(255,255,255,0.8)",whiteSpace:"nowrap"}}>{TASK_STATUS_LABEL[t.status]}</span>
                 </div>
@@ -215,6 +214,12 @@ function App(){
     await persist(updated);
   };
 
+  const saveEditTask=async()=>{
+    if(!editingTask)return;
+    await updateTask(editingTask.id,editingTask);
+    setEditingTask(null);
+  };
+
   const handleTrelloFile=async(e)=>{
     setImportError("");
     const file=e.target.files[0];
@@ -222,16 +227,14 @@ function App(){
     try{
       const text=await file.text();
       const board=JSON.parse(text);
-      // Get lists (excluding archived)
       const lists=board.lists.filter(l=>!l.closed);
-      // Get cards (excluding archived), mapped by list
       const cards=board.cards.filter(c=>!c.closed);
       const preview=lists.map(l=>{
         const listCards=cards.filter(c=>c.idList===l.id);
         return{
           id:uid(),
           name:l.name,
-          description:board.desc||"",
+          description:"",
           color:PROJECT_COLORS[lists.indexOf(l)%PROJECT_COLORS.length],
           status:"active",
           tasks:listCards.map(c=>({
@@ -240,12 +243,10 @@ function App(){
             status:c.dueComplete?"done":"todo",
             start:c.due?c.due.slice(0,10):today(),
             end:c.due?c.due.slice(0,10):addDays(today(),7),
-            subtasks:(c.checklists||[]).flatMap(cl=>
-              (cl.checkItems||[]).map(ci=>({id:uid(),name:ci.name,done:ci.state==="complete"}))
-            )
+            subtasks:[]
           }))
         };
-      }).filter(p=>p.tasks.length>0||true);
+      });
       setImportPreview(preview);
     }catch(err){
       setImportError("Invalid Trello JSON file. Please export your board again.");
@@ -260,10 +261,6 @@ function App(){
     setShowImport(false);
     setImportPreview(null);
     setImportError("");
-  };
-    if(!editingTask)return;
-    await updateTask(editingTask.id,editingTask);
-    setEditingTask(null);
   };
 
   const nextTask=p=>p.tasks.find(t=>t.status!=="done")||p.tasks[0];
@@ -295,6 +292,7 @@ function App(){
 
   return(
     <div style={s.wrap}>
+      {/* TOP BAR */}
       <div style={s.topBar}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           {view==="detail"&&<button style={{...s.btnSm,marginRight:4}} onClick={goHome}>← Back</button>}
@@ -311,21 +309,26 @@ function App(){
           )}
           <SyncIndicator status={syncStatus}/>
         </div>
-        {view==="home"&&<button style={s.btn} onClick={()=>setShowAddProject(true)}>+ New Project</button>}
-        {view==="home"&&<button style={{...s.btnSm,marginLeft:8}} onClick={()=>setShowImport(true)}>⬆ Import Trello</button>}
-        {view==="detail"&&<button style={{...s.btn,background:"#1D9E75"}} onClick={()=>setShowAddTask(true)}>+ Add Task</button>}
+        <div style={{display:"flex",gap:8}}>
+          {view==="home"&&<button style={s.btn} onClick={()=>setShowAddProject(true)}>+ New Project</button>}
+          {view==="home"&&<button style={s.btnSm} onClick={()=>setShowImport(true)}>⬆ Import Trello</button>}
+          {view==="detail"&&<button style={{...s.btn,background:"#1D9E75"}} onClick={()=>setShowAddTask(true)}>+ Add Task</button>}
+        </div>
       </div>
 
+      {/* HOME VIEW */}
       {view==="home"&&(
         <>
           <div style={s.statBar}>
             <div style={s.statCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
             <div style={s.statCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalTasks}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
             <div style={{...s.statCard,borderColor:dueThisWeek?"#378ADD44":"#2a2d3a"}}>
-              <div style={{fontSize:22,fontWeight:600,color:dueThisWeek?"#378ADD":"#fff"}}>{dueThisWeek}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Due This Week</div>
+              <div style={{fontSize:22,fontWeight:600,color:dueThisWeek?"#378ADD":"#fff"}}>{dueThisWeek}</div>
+              <div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Due This Week</div>
             </div>
             <div style={{...s.statCard,borderColor:overdue?"#E24B4A55":"#2a2d3a"}}>
-              <div style={{fontSize:22,fontWeight:600,color:overdue?"#E24B4A":"#fff"}}>{overdue}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Overdue</div>
+              <div style={{fontSize:22,fontWeight:600,color:overdue?"#E24B4A":"#fff"}}>{overdue}</div>
+              <div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Overdue</div>
             </div>
           </div>
           <div style={s.grid}>
@@ -364,109 +367,111 @@ function App(){
         </>
       )}
 
+      {/* DETAIL VIEW */}
       {view==="detail"&&project&&(
-        <div style={{display:"flex",gap:0}}>
-        {/* MAIN CONTENT */}
-        <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
-          <div style={{marginBottom:20,background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"14px 18px"}}>
-            <div style={s.sectionTitle}>Description</div>
-            <textarea value={project.description} onChange={e=>updateProject(project.id,{description:e.target.value})}
-              style={{...s.input,resize:"vertical",minHeight:56,background:"transparent",border:"none",padding:0,fontSize:13,color:"#ccc"}}
-              placeholder="Add a project description..."/>
-          </div>
-          <div style={{marginBottom:24}}>
-            <div style={s.sectionTitle}>Tasks</div>
-            {project.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet — add one above.</div>}
-            {project.tasks.map(t=>{
-              const isOD=t.status!=="done"&&t.end<today();
-              const subtasks=t.subtasks||[];
-              const subDone=subtasks.filter(s=>s.done).length;
-              return(
-                <div key={t.id}>
-                  <div style={{...s.taskRow,borderColor:isOD?"#E24B4A44":"#222"}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:TASK_STATUS_COLOR[t.status],display:"inline-block",flexShrink:0}}/>
-                    <span style={{flex:1,fontSize:13,color:"#e0e0e0"}}>{t.name}
-                      {subtasks.length>0&&<span style={{marginLeft:8,fontSize:10,color:"#666"}}>{subDone}/{subtasks.length} subtasks</span>}
-                    </span>
-                    <span style={{fontSize:11,color:"#666"}}>{t.start} → {t.end}</span>
-                    {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
-                    <select value={t.status} onChange={e=>updateTask(t.id,{status:e.target.value})}
-                      style={{...s.select,width:"auto",fontSize:11,padding:"3px 6px",color:TASK_STATUS_COLOR[t.status]}}>
-                      {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
-                    </select>
-                    <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
-                      onClick={()=>updateTask(t.id,{subtasks:[...(t.subtasks||[]),{id:uid(),name:"New subtask",done:false}]})}>+ Sub</button>
-                    <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
-                      onClick={()=>setEditingTask({...t})}>Edit</button>
-                    <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
-                      onClick={()=>deleteTask(t.id)}>✕</button>
-                  </div>
-                  {subtasks.length>0&&(
-                    <div style={{marginLeft:24,marginBottom:6}}>
-                      {subtasks.map(st=>(
-                        <div key={st.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}>
-                          <input type="checkbox" checked={st.done} onChange={e=>{
-                            const updated=(t.subtasks||[]).map(s=>s.id===st.id?{...s,done:e.target.checked}:s);
-                            updateTask(t.id,{subtasks:updated});
-                          }} style={{cursor:"pointer",accentColor:"#1D9E75"}}/>
-                          <input value={st.name} onChange={e=>{
-                            const updated=(t.subtasks||[]).map(s=>s.id===st.id?{...s,name:e.target.value}:s);
-                            updateTask(t.id,{subtasks:updated});
-                          }} onBlur={()=>persist(projects.map(p=>p.id===activeId?p:p))}
-                          style={{flex:1,background:"transparent",border:"none",color:st.done?"#555":"#bbb",fontSize:12,outline:"none",textDecoration:st.done?"line-through":"none"}}/>
-                          <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
-                            onClick={()=>updateTask(t.id,{subtasks:(t.subtasks||[]).filter(s=>s.id!==st.id)})}>✕</button>
-                        </div>
-                      ))}
+        <div style={{display:"flex"}}>
+          {/* MAIN CONTENT */}
+          <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
+            <div style={{marginBottom:20,background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"14px 18px"}}>
+              <div style={s.sectionTitle}>Description</div>
+              <textarea value={project.description} onChange={e=>updateProject(project.id,{description:e.target.value})}
+                style={{...s.input,resize:"vertical",minHeight:56,background:"transparent",border:"none",padding:0,fontSize:13,color:"#ccc"}}
+                placeholder="Add a project description..."/>
+            </div>
+
+            <div style={{marginBottom:24}}>
+              <div style={s.sectionTitle}>Tasks</div>
+              {project.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet — add one above.</div>}
+              {project.tasks.map(t=>{
+                const isOD=t.status!=="done"&&t.end<today();
+                const subtasks=t.subtasks||[];
+                const subDone=subtasks.filter(s=>s.done).length;
+                return(
+                  <div key={t.id}>
+                    <div style={{...s.taskRow,borderColor:isOD?"#E24B4A44":"#222"}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:TASK_STATUS_COLOR[t.status],display:"inline-block",flexShrink:0}}/>
+                      <span style={{flex:1,fontSize:13,color:"#e0e0e0"}}>
+                        {t.name}
+                        {subtasks.length>0&&<span style={{marginLeft:8,fontSize:10,color:"#666"}}>{subDone}/{subtasks.length} subtasks</span>}
+                      </span>
+                      <span style={{fontSize:11,color:"#666"}}>{t.start} → {t.end}</span>
+                      {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
+                      <select value={t.status} onChange={e=>updateTask(t.id,{status:e.target.value})}
+                        style={{...s.select,width:"auto",fontSize:11,padding:"3px 6px",color:TASK_STATUS_COLOR[t.status]}}>
+                        {TASK_STATUS.map(st=><option key={st} value={st}>{TASK_STATUS_LABEL[st]}</option>)}
+                      </select>
+                      <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
+                        onClick={()=>updateTask(t.id,{subtasks:[...(t.subtasks||[]),{id:uid(),name:"New subtask",done:false}]})}>+ Sub</button>
+                      <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
+                        onClick={()=>setEditingTask({...t})}>Edit</button>
+                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
+                        onClick={()=>deleteTask(t.id)}>✕</button>
                     </div>
-                  )}
+                    {subtasks.length>0&&(
+                      <div style={{marginLeft:24,marginBottom:6}}>
+                        {subtasks.map(st=>(
+                          <div key={st.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}>
+                            <input type="checkbox" checked={st.done} onChange={e=>{
+                              const updated=(t.subtasks||[]).map(s=>s.id===st.id?{...s,done:e.target.checked}:s);
+                              updateTask(t.id,{subtasks:updated});
+                            }} style={{cursor:"pointer",accentColor:"#1D9E75"}}/>
+                            <input value={st.name} onChange={e=>{
+                              const upd=(t.subtasks||[]).map(s=>s.id===st.id?{...s,name:e.target.value}:s);
+                              updateTask(t.id,{subtasks:upd});
+                            }}
+                            style={{flex:1,background:"transparent",border:"none",color:st.done?"#555":"#bbb",fontSize:12,outline:"none",textDecoration:st.done?"line-through":"none"}}/>
+                            <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
+                              onClick={()=>updateTask(t.id,{subtasks:(t.subtasks||[]).filter(s=>s.id!==st.id)})}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"16px 18px"}}>
+              <div style={s.sectionTitle}>Gantt Chart</div>
+              <GanttChart tasks={project.tasks}/>
+            </div>
+          </div>
+
+          {/* RIGHT SIDEBAR */}
+          <div style={{width:"28%",minWidth:200,maxWidth:280,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
+            <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
+            {projects.map(p=>{
+              const isActive=p.id===activeId;
+              const pDone=p.tasks.filter(t=>t.status==="done").length;
+              const pPct=p.tasks.length?Math.round((pDone/p.tasks.length)*100):0;
+              const isOD=p.tasks.some(t=>t.status!=="done"&&t.end<today());
+              return(
+                <div key={p.id} onClick={()=>openProject(p.id)}
+                  style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
+                    background:isActive?"rgba(127,119,221,0.15)":"transparent",
+                    border:`1px solid ${isActive?p.color:"#222"}`,transition:"all .15s"}}
+                  onMouseEnter={e=>{if(!isActive){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="#333";}}}
+                  onMouseLeave={e=>{if(!isActive){e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="#222";}}}
+                >
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
+                    <span style={{fontSize:12,fontWeight:isActive?600:400,color:isActive?"#fff":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                    {isOD&&<span style={{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}}>●</span>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
+                      <div style={{height:3,borderRadius:2,background:p.color,width:`${pPct}%`}}/>
+                    </div>
+                    <span style={{fontSize:10,color:"#555"}}>{pPct}%</span>
+                  </div>
                 </div>
               );
             })}
           </div>
-          <div style={{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"16px 18px"}}>
-            <div style={s.sectionTitle}>Gantt Chart</div>
-            <GanttChart tasks={project.tasks}/>
-          </div>
-        </div>
-
-        {/* RIGHT SIDEBAR */}
-        <div style={{width:"28%",minWidth:200,maxWidth:280,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
-          <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
-          {projects.map(p=>{
-            const isActive=p.id===activeId;
-            const pDone=p.tasks.filter(t=>t.status==="done").length;
-            const pPct=p.tasks.length?Math.round((pDone/p.tasks.length)*100):0;
-            const isOD=p.tasks.some(t=>t.status!=="done"&&t.end<today());
-            return(
-              <div key={p.id} onClick={()=>openProject(p.id)}
-                style={{
-                  padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
-                  background:isActive?"rgba(127,119,221,0.15)":"transparent",
-                  border:`1px solid ${isActive?p.color:"#222"}`,
-                  transition:"all .15s"
-                }}
-                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="#333";}}}
-                onMouseLeave={e=>{if(!isActive){e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="#222";}}}
-              >
-                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
-                  <span style={{fontSize:12,fontWeight:isActive?600:400,color:isActive?"#fff":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-                  {isOD&&<span style={{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}}>●</span>}
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
-                    <div style={{height:3,borderRadius:2,background:p.color,width:`${pPct}%`}}/>
-                  </div>
-                  <span style={{fontSize:10,color:"#555"}}>{pPct}%</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
         </div>
       )}
 
+      {/* ADD PROJECT MODAL */}
       {showAddProject&&(
         <div style={s.modal} onClick={()=>setShowAddProject(false)}>
           <div style={s.modalBox} onClick={e=>e.stopPropagation()}>
@@ -496,6 +501,7 @@ function App(){
         </div>
       )}
 
+      {/* ADD TASK MODAL */}
       {showAddTask&&(
         <div style={s.modal} onClick={()=>setShowAddTask(false)}>
           <div style={s.modalBox} onClick={e=>e.stopPropagation()}>
@@ -520,6 +526,7 @@ function App(){
         </div>
       )}
 
+      {/* EDIT TASK MODAL */}
       {editingTask&&(
         <div style={s.modal} onClick={()=>setEditingTask(null)}>
           <div style={s.modalBox} onClick={e=>e.stopPropagation()}>
@@ -544,6 +551,7 @@ function App(){
         </div>
       )}
 
+      {/* IMPORT TRELLO MODAL */}
       {showImport&&(
         <div style={s.modal} onClick={()=>{setShowImport(false);setImportPreview(null);setImportError("");}}>
           <div style={{...s.modalBox,width:500,maxHeight:"80vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
@@ -559,6 +567,9 @@ function App(){
                   <div style={{fontSize:13,color:"#888"}}>Click to select your Trello JSON file</div>
                 </label>
                 {importError&&<div style={{fontSize:12,color:"#E24B4A",marginTop:10}}>{importError}</div>}
+                <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
+                  <button style={s.btnSm} onClick={()=>{setShowImport(false);setImportError("");}}>Cancel</button>
+                </div>
               </>
             ):(
               <>
@@ -574,21 +585,17 @@ function App(){
                 </div>
                 <div style={{fontSize:12,color:"#888",marginBottom:14}}>How would you like to import?</div>
                 <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
-                  <button style={s.btnSm} onClick={()=>{setImportPreview(null);}}>← Back</button>
+                  <button style={s.btnSm} onClick={()=>setImportPreview(null)}>← Back</button>
                   <button style={{...s.btn,background:"#378ADD"}} onClick={()=>confirmImport("merge")}>Merge with existing</button>
                   <button style={{...s.btn,background:"#E24B4A"}} onClick={()=>confirmImport("replace")}>Replace all projects</button>
                 </div>
               </>
             )}
-            {!importPreview&&(
-              <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
-                <button style={s.btnSm} onClick={()=>{setShowImport(false);setImportError("");}}>Cancel</button>
-              </div>
-            )}
           </div>
         </div>
       )}
 
+      {/* CONFIRM DELETE */}
       {confirmDelete&&(
         <div style={s.modal} onClick={()=>setConfirmDelete(null)}>
           <div style={{...s.modalBox,width:320}} onClick={e=>e.stopPropagation()}>
@@ -605,7 +612,7 @@ function App(){
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
