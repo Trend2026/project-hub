@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -316,7 +316,9 @@ function App(){
       )}
 
       {view==="detail"&&project&&(
-        <div style={{padding:"20px 24px"}}>
+        <div style={{display:"flex",gap:0}}>
+        {/* MAIN CONTENT */}
+        <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
           <div style={{marginBottom:20,background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"14px 18px"}}>
             <div style={s.sectionTitle}>Description</div>
             <textarea value={project.description} onChange={e=>updateProject(project.id,{description:e.target.value})}
@@ -377,6 +379,42 @@ function App(){
             <div style={s.sectionTitle}>Gantt Chart</div>
             <GanttChart tasks={project.tasks}/>
           </div>
+        </div>
+
+        {/* RIGHT SIDEBAR */}
+        <div style={{width:"28%",minWidth:200,maxWidth:280,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
+          {projects.map(p=>{
+            const isActive=p.id===activeId;
+            const pDone=p.tasks.filter(t=>t.status==="done").length;
+            const pPct=p.tasks.length?Math.round((pDone/p.tasks.length)*100):0;
+            const isOD=p.tasks.some(t=>t.status!=="done"&&t.end<today());
+            return(
+              <div key={p.id} onClick={()=>openProject(p.id)}
+                style={{
+                  padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
+                  background:isActive?"rgba(127,119,221,0.15)":"transparent",
+                  border:`1px solid ${isActive?p.color:"#222"}`,
+                  transition:"all .15s"
+                }}
+                onMouseEnter={e=>{if(!isActive){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="#333";}}}
+                onMouseLeave={e=>{if(!isActive){e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="#222";}}}
+              >
+                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
+                  <span style={{fontSize:12,fontWeight:isActive?600:400,color:isActive?"#fff":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                  {isOD&&<span style={{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}}>●</span>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
+                    <div style={{height:3,borderRadius:2,background:p.color,width:`${pPct}%`}}/>
+                  </div>
+                  <span style={{fontSize:10,color:"#555"}}>{pPct}%</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         </div>
       )}
 
