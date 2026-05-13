@@ -263,7 +263,39 @@ function App(){
     setImportError("");
   };
 
-  const nextTask=p=>p.tasks.find(t=>t.status!=="done")||p.tasks[0];
+  const exportBackup=()=>{
+    const trelloFormat={
+      name:"Project Hub Backup",
+      desc:"Exported from Project Hub — "+new Date().toLocaleDateString(),
+      lists:projects.map((p,i)=>({id:p.id,name:p.name,closed:false,pos:(i+1)*65536})),
+      cards:projects.flatMap(p=>p.tasks.map((t,i)=>({
+        id:t.id,
+        name:t.name,
+        desc:t.subtasks&&t.subtasks.length>0?t.subtasks.map(s=>(s.done?"✅ ":"⬜ ")+s.name).join("\n"):"",
+        idList:p.id,
+        closed:false,
+        due:t.end?t.end+"T00:00:00.000Z":null,
+        dueComplete:t.status==="done",
+        pos:(i+1)*65536,
+        labels:[],
+        checklists:t.subtasks&&t.subtasks.length>0?[{
+          id:uid(),
+          name:"Subtasks",
+          checkItems:t.subtasks.map(s=>({id:s.id,name:s.name,state:s.done?"complete":"incomplete"}))
+        }]:[]
+      }))),
+      labels:[],
+      members:[],
+      exportedAt:new Date().toISOString()
+    };
+    const blob=new Blob([JSON.stringify(trelloFormat,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=`projecthub-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const s={
     wrap:{fontFamily:"system-ui,sans-serif",minHeight:"100vh",background:"#111318",color:"#e8e8f0",paddingBottom:40},
@@ -312,6 +344,7 @@ function App(){
         <div style={{display:"flex",gap:8}}>
           {view==="home"&&<button style={s.btn} onClick={()=>setShowAddProject(true)}>+ New Project</button>}
           {view==="home"&&<button style={s.btnSm} onClick={()=>setShowImport(true)}>⬆ Import Trello</button>}
+          {view==="home"&&<button style={{...s.btnSm,borderColor:"#1D9E75",color:"#1D9E75"}} onClick={exportBackup}>⬇ Backup</button>}
           {view==="detail"&&<button style={{...s.btn,background:"#1D9E75"}} onClick={()=>setShowAddTask(true)}>+ Add Task</button>}
         </div>
       </div>
