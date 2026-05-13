@@ -145,6 +145,9 @@ function App(){
   const [newTask,setNewTask]=React.useState({name:"",status:"todo",start:today(),end:addDays(today(),7)});
   const [editingTask,setEditingTask]=React.useState(null);
   const [confirmDelete,setConfirmDelete]=React.useState(null);
+  const [showImport,setShowImport]=React.useState(false);
+  const [importPreview,setImportPreview]=React.useState(null);
+  const [importError,setImportError]=React.useState("");
 
   React.useEffect(()=>{
     dbLoad().then(data=>{
@@ -212,7 +215,52 @@ function App(){
     await persist(updated);
   };
 
-  const saveEditTask=async()=>{
+  const handleTrelloFile=async(e)=>{
+    setImportError("");
+    const file=e.target.files[0];
+    if(!file)return;
+    try{
+      const text=await file.text();
+      const board=JSON.parse(text);
+      // Get lists (excluding archived)
+      const lists=board.lists.filter(l=>!l.closed);
+      // Get cards (excluding archived), mapped by list
+      const cards=board.cards.filter(c=>!c.closed);
+      const preview=lists.map(l=>{
+        const listCards=cards.filter(c=>c.idList===l.id);
+        return{
+          id:uid(),
+          name:l.name,
+          description:board.desc||"",
+          color:PROJECT_COLORS[lists.indexOf(l)%PROJECT_COLORS.length],
+          status:"active",
+          tasks:listCards.map(c=>({
+            id:uid(),
+            name:c.name,
+            status:c.dueComplete?"done":"todo",
+            start:c.due?c.due.slice(0,10):today(),
+            end:c.due?c.due.slice(0,10):addDays(today(),7),
+            subtasks:(c.checklists||[]).flatMap(cl=>
+              (cl.checkItems||[]).map(ci=>({id:uid(),name:ci.name,done:ci.state==="complete"}))
+            )
+          }))
+        };
+      }).filter(p=>p.tasks.length>0||true);
+      setImportPreview(preview);
+    }catch(err){
+      setImportError("Invalid Trello JSON file. Please export your board again.");
+    }
+  };
+
+  const confirmImport=async(mode)=>{
+    if(!importPreview)return;
+    const updated=mode==="replace"?importPreview:[...projects,...importPreview];
+    setProjects(updated);
+    await persist(updated);
+    setShowImport(false);
+    setImportPreview(null);
+    setImportError("");
+  };
     if(!editingTask)return;
     await updateTask(editingTask.id,editingTask);
     setEditingTask(null);
@@ -264,6 +312,7 @@ function App(){
           <SyncIndicator status={syncStatus}/>
         </div>
         {view==="home"&&<button style={s.btn} onClick={()=>setShowAddProject(true)}>+ New Project</button>}
+        {view==="home"&&<button style={{...s.btnSm,marginLeft:8}} onClick={()=>setShowImport(true)}>⬆ Import Trello</button>}
         {view==="detail"&&<button style={{...s.btn,background:"#1D9E75"}} onClick={()=>setShowAddTask(true)}>+ Add Task</button>}
       </div>
 
@@ -491,6 +540,51 @@ function App(){
               <button style={s.btnSm} onClick={()=>setEditingTask(null)}>Cancel</button>
               <button style={s.btn} onClick={saveEditTask}>Save Changes</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showImport&&(
+        <div style={s.modal} onClick={()=>{setShowImport(false);setImportPreview(null);setImportError("");}}>
+          <div style={{...s.modalBox,width:500,maxHeight:"80vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:6}}>Import from Trello</div>
+            <div style={{fontSize:12,color:"#666",marginBottom:18,lineHeight:1.6}}>
+              In Trello: open your board → <b style={{color:"#aaa"}}>Show Menu → More → Print and Export → Export as JSON</b>. Then select the downloaded file below.
+            </div>
+            {!importPreview?(
+              <>
+                <label style={{display:"block",background:"#111318",border:"2px dashed #333",borderRadius:10,padding:"24px",textAlign:"center",cursor:"pointer"}}>
+                  <input type="file" accept=".json" style={{display:"none"}} onChange={handleTrelloFile}/>
+                  <div style={{fontSize:28,marginBottom:8}}>📂</div>
+                  <div style={{fontSize:13,color:"#888"}}>Click to select your Trello JSON file</div>
+                </label>
+                {importError&&<div style={{fontSize:12,color:"#E24B4A",marginTop:10}}>{importError}</div>}
+              </>
+            ):(
+              <>
+                <div style={{fontSize:12,color:"#1D9E75",marginBottom:12,fontWeight:500}}>✅ Found {importPreview.length} projects with {importPreview.reduce((a,p)=>a+p.tasks.length,0)} tasks</div>
+                <div style={{maxHeight:260,overflowY:"auto",marginBottom:16}}>
+                  {importPreview.map(p=>(
+                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#111318",borderRadius:8,marginBottom:6,border:"1px solid #222"}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}/>
+                      <span style={{flex:1,fontSize:13,color:"#e0e0e0",fontWeight:500}}>{p.name}</span>
+                      <span style={{fontSize:11,color:"#666"}}>{p.tasks.length} tasks</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:12,color:"#888",marginBottom:14}}>How would you like to import?</div>
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
+                  <button style={s.btnSm} onClick={()=>{setImportPreview(null);}}>← Back</button>
+                  <button style={{...s.btn,background:"#378ADD"}} onClick={()=>confirmImport("merge")}>Merge with existing</button>
+                  <button style={{...s.btn,background:"#E24B4A"}} onClick={()=>confirmImport("replace")}>Replace all projects</button>
+                </div>
+              </>
+            )}
+            {!importPreview&&(
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
+                <button style={s.btnSm} onClick={()=>{setShowImport(false);setImportError("");}}>Cancel</button>
+              </div>
+            )}
           </div>
         </div>
       )}
