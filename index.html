@@ -410,12 +410,7 @@ function App(){
       {view==="detail"&&proj&&(
         <div style={{display:"flex"}}>
           <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
-            <div style={{marginBottom:20,background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"14px 18px"}}>
-              <div style={st.sec}>Description</div>
-              <textarea value={proj.description} onChange={function(e){updProject(proj.id,{description:e.target.value});}}
-                style={Object.assign({},st.inp,{resize:"vertical",minHeight:56,background:"transparent",border:"none",padding:0,fontSize:13,color:"#ccc"})}
-                placeholder="Add a project description..."/>
-            </div>
+
             <div style={{marginBottom:24}}>
               <div style={st.sec}>Tasks</div>
               {proj.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
