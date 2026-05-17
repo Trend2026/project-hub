@@ -430,7 +430,7 @@ function App(){
                     <div style={Object.assign({},st.trow,{borderColor:isOD?"#E24B4A44":"#222"})}>
                       <span style={{color:"#444",fontSize:14,cursor:"grab"}}>⠿</span>
                       <span style={{width:8,height:8,borderRadius:"50%",background:TC[t.status],display:"inline-block",flexShrink:0}}/>
-                      <span style={{flex:1,fontSize:13,color:"#e0e0e0"}}>
+                      <span style={{flex:1,fontSize:13,color:"#D4537E"}}>
                         {t.name}
                         {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:"#666"}}>{subDone}/{subs.length} subtasks</span>}
                       </span>
@@ -490,7 +490,7 @@ function App(){
                 >
                   <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
                     <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
-                    <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#fff":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                    <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
                     {isOD&&<span style={{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}}>●</span>}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
