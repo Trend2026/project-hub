@@ -146,7 +146,7 @@ function App(){
   const [nt,setNt]=React.useState({name:"",status:"todo",start:tod(),end:addD(tod(),7)});
   const [editT,setEditT]=React.useState(null);
   const [delConf,setDelConf]=React.useState(null);
-  const [impOpen,setImpOpen]=React.useState(false);
+  const [activeTask,setActiveTask]=React.useState(null);
   const [impPrev,setImpPrev]=React.useState(null);
   const [impErr,setImpErr]=React.useState("");
   const dragItem=React.useRef(null);
@@ -418,6 +418,7 @@ function App(){
                 const isOD=t.status!=="done"&&t.end<tod();
                 const subs=t.subtasks||[];
                 const subDone=subs.filter(function(s){return s.done;}).length;
+                const isOpen=activeTask===t.id;
                 return(
                   <div key={t.id}
                     draggable="true"
@@ -427,27 +428,30 @@ function App(){
                     onDragOver={onTDragOver}
                     onDrop={onTDrop}
                   >
-                    <div style={Object.assign({},st.trow,{borderColor:isOD?"#E24B4A44":"#222"})}>
-                      <span style={{color:"#444",fontSize:14,cursor:"grab"}}>⠿</span>
+                    <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E44":isOD?"#E24B4A44":"#222",background:isOpen?"rgba(212,83,126,0.06)":"#111318",cursor:"pointer"})}
+                      onClick={function(){setActiveTask(isOpen?null:t.id);}}>
+                      <span style={{color:"#444",fontSize:14,cursor:"grab"}} onClick={function(e){e.stopPropagation();}}>⠿</span>
                       <span style={{width:8,height:8,borderRadius:"50%",background:TC[t.status],display:"inline-block",flexShrink:0}}/>
-                      <span style={{flex:1,fontSize:13,color:"#D4537E"}}>
+                      <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
                         {t.name}
-                        {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:"#666"}}>{subDone}/{subs.length} subtasks</span>}
+                        {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"#D4537E88":"#555"}}>{subDone}/{subs.length}</span>}
                       </span>
-                      <span style={{fontSize:11,color:"#666"}}>{t.start} to {t.end}</span>
+                      <span style={{fontSize:11,color:"#555"}}>{t.start} to {t.end}</span>
                       {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
-                      <select value={t.status} onChange={function(e){updTask(t.id,{status:e.target.value});}}
-                        style={Object.assign({},st.sel,{width:"auto",fontSize:11,padding:"3px 6px",color:TC[t.status]})}>
+                      <select value={t.status} onChange={function(e){e.stopPropagation();updTask(t.id,{status:e.target.value});}}
+                        style={Object.assign({},st.sel,{width:"auto",fontSize:11,padding:"3px 6px",color:TC[t.status]})}
+                        onClick={function(e){e.stopPropagation();}}>
                         {TS.map(function(s){return<option key={s} value={s}>{TL[s]}</option>;})}
                       </select>
                       <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
-                        onClick={function(){updTask(t.id,{subtasks:[...subs,{id:uid(),name:"New subtask",done:false}]});}}>+Sub</button>
+                        onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:[...subs,{id:uid(),name:"New subtask",done:false}]});setActiveTask(t.id);}}>+Sub</button>
                       <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
-                        onClick={function(){setEditT(Object.assign({},t));}}>Edit</button>
+                        onClick={function(e){e.stopPropagation();setEditT(Object.assign({},t));}}>Edit</button>
                       <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
-                        onClick={function(){delTask(t.id);}}>x</button>
+                        onClick={function(e){e.stopPropagation();delTask(t.id);}}>x</button>
+                      <span style={{color:isOpen?"#D4537E":"#444",fontSize:11,marginLeft:2}}>{isOpen?"▲":"▼"}</span>
                     </div>
-                    {subs.length>0&&(
+                    {isOpen&&subs.length>0&&(
                       <div style={{marginLeft:24,marginBottom:6}}>
                         {subs.map(function(s){return(
                           <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}>
@@ -462,6 +466,9 @@ function App(){
                           </div>
                         );})}
                       </div>
+                    )}
+                    {isOpen&&subs.length===0&&(
+                      <div style={{marginLeft:24,marginBottom:8,fontSize:12,color:"#555",fontStyle:"italic"}}>No subtasks yet — click +Sub to add one.</div>
                     )}
                   </div>
                 );
