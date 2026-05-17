@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -21,243 +21,233 @@ input,select,textarea{font-family:system-ui,sans-serif}
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const SURL="https://gbaoymjpeuxybovfgjfj.supabase.co";
-const SKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYW95bWpwZXV4eWJvdmZnamZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM3MzQsImV4cCI6MjA5MzAyOTczNH0.uR2tQnkr5c1i0V8dY5AmMo3iF8nfKYXTdW5ohW22zgo";
-const HDR={"Content-Type":"application/json",apikey:SKEY,Authorization:"Bearer "+SKEY};
-const AKEY="all_projects";
+var SURL="https://gbaoymjpeuxybovfgjfj.supabase.co";
+var SKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYW95bWpwZXV4eWJvdmZnamZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTM3MzQsImV4cCI6MjA5MzAyOTczNH0.uR2tQnkr5c1i0V8dY5AmMo3iF8nfKYXTdW5ohW22zgo";
+var HDR={"Content-Type":"application/json",apikey:SKEY,Authorization:"Bearer "+SKEY};
+var AKEY="all_projects";
 
-async function dbLoad(){
-  try{
-    const r=await fetch(SURL+"/rest/v1/projects?id=eq."+AKEY+"&select=*",{headers:HDR});
-    if(!r.ok)return[];
-    const rows=await r.json();
-    if(!rows.length)return[];
-    return JSON.parse(rows[0].data);
-  }catch(e){return[];}
+function dbLoad(){
+  return fetch(SURL+"/rest/v1/projects?id=eq."+AKEY+"&select=*",{headers:HDR})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows.length)return[];
+      return JSON.parse(rows[0].data);
+    }).catch(function(){return[];});
 }
 
-async function dbSaveAll(projects){
-  await fetch(SURL+"/rest/v1/projects?id=eq."+AKEY,{method:"DELETE",headers:HDR});
-  const r=await fetch(SURL+"/rest/v1/projects",{
-    method:"POST",
-    headers:Object.assign({},HDR,{Prefer:"return=minimal"}),
-    body:JSON.stringify({id:AKEY,data:JSON.stringify(projects),updated_at:new Date().toISOString()})
-  });
-  if(!r.ok){const e=await r.text();throw new Error(e);}
+function dbSaveAll(projects){
+  return fetch(SURL+"/rest/v1/projects?id=eq."+AKEY,{method:"DELETE",headers:HDR})
+    .then(function(){
+      return fetch(SURL+"/rest/v1/projects",{
+        method:"POST",
+        headers:Object.assign({},HDR,{Prefer:"return=minimal"}),
+        body:JSON.stringify({id:AKEY,data:JSON.stringify(projects),updated_at:new Date().toISOString()})
+      });
+    }).then(function(r){
+      if(!r.ok)throw new Error("Save failed");
+    });
 }
 
-const SC={
+var SC={
   active:{label:"Active",bg:"#1D9E75",text:"#E1F5EE"},
   inprogress:{label:"In Progress",bg:"#378ADD",text:"#E6F1FB"},
   onhold:{label:"On Hold",bg:"#BA7517",text:"#FAEEDA"},
   complete:{label:"Complete",bg:"#639922",text:"#EAF3DE"},
   review:{label:"Review",bg:"#7F77DD",text:"#EEEDFE"}
 };
-const TS=["todo","inprogress","done"];
-const TL={todo:"To Do",inprogress:"In Progress",done:"Done"};
-const TC={todo:"#888780",inprogress:"#378ADD",done:"#639922"};
-const PC=["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56"];
+var TS=["todo","inprogress","done"];
+var TL={todo:"To Do",inprogress:"In Progress",done:"Done"};
+var TC={todo:"#888780",inprogress:"#378ADD",done:"#639922"};
+var PC=["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56"];
 
-const uid=()=>Math.random().toString(36).slice(2,9);
-const tod=()=>new Date().toISOString().slice(0,10);
-const addD=(d,n)=>{const dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);};
+function uid(){return Math.random().toString(36).slice(2,9);}
+function tod(){return new Date().toISOString().slice(0,10);}
+function addD(d,n){var dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
 
-function PBar({tasks,color}){
-  const done=tasks.filter(t=>t.status==="done").length;
-  const pct=tasks.length?Math.round(done/tasks.length*100):0;
-  return(
-    <div style={{marginTop:8}}>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#888",marginBottom:3}}>
-        <span>{done}/{tasks.length} tasks</span><span>{pct}%</span>
-      </div>
-      <div style={{height:4,borderRadius:2,background:"rgba(255,255,255,0.12)"}}>
-        <div style={{height:4,borderRadius:2,background:color,width:pct+"%",transition:"width .4s"}}/>
-      </div>
-    </div>
+function PBar(props){
+  var done=props.tasks.filter(function(t){return t.status==="done";}).length;
+  var pct=props.tasks.length?Math.round(done/props.tasks.length*100):0;
+  return React.createElement("div",{style:{marginTop:8}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:11,color:"#888",marginBottom:3}},
+      React.createElement("span",null,done+"/"+props.tasks.length+" tasks"),
+      React.createElement("span",null,pct+"%")
+    ),
+    React.createElement("div",{style:{height:4,borderRadius:2,background:"rgba(255,255,255,0.12)"}},
+      React.createElement("div",{style:{height:4,borderRadius:2,background:props.color,width:pct+"%",transition:"width .4s"}})
+    )
   );
 }
 
-function SBadge({status}){
-  const c=SC[status]||SC.active;
-  return <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:99,background:c.bg,color:c.text,textTransform:"uppercase",letterSpacing:0.5}}>{c.label}</span>;
+function SBadge(props){
+  var c=SC[props.status]||SC.active;
+  return React.createElement("span",{style:{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:99,background:c.bg,color:c.text,textTransform:"uppercase",letterSpacing:0.5}},c.label);
 }
 
-function Gantt({tasks}){
-  if(!tasks.length)return <div style={{color:"#666",fontSize:13,padding:"12px 0"}}>No tasks yet.</div>;
-  const dates=tasks.flatMap(t=>[new Date(t.start),new Date(t.end)]);
-  const minD=new Date(Math.min.apply(null,dates));
-  const maxD=new Date(Math.max.apply(null,dates));
-  const span=Math.max((maxD-minD)/86400000,1);
-  const pct=function(d){return Math.max(0,((new Date(d)-minD)/86400000/span)*100);};
-  const wid=function(s,e){return Math.max(2,((new Date(e)-new Date(s))/86400000/span)*100);};
-  const fmt=function(d){const dt=new Date(d);return dt.getDate()+" "+dt.toLocaleString("default",{month:"short"});};
-  const tp=((new Date()-minD)/86400000/span)*100;
-  return(
-    <div style={{overflowX:"auto"}}>
-      <div style={{minWidth:480}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:8,paddingLeft:140}}>
-          <span>{fmt(minD)}</span><span>{fmt(maxD)}</span>
-        </div>
-        <div style={{position:"relative"}}>
-          {tp>=0&&tp<=100&&<div style={{position:"absolute",left:"calc(140px + "+tp+"% * (100% - 140px) / 100)",top:0,bottom:0,width:1,background:"rgba(210,80,80,0.5)",zIndex:2}}/>}
-          {tasks.map(function(t){
-            return(
-              <div key={t.id} style={{display:"flex",alignItems:"center",marginBottom:6,minHeight:28}}>
-                <div style={{width:130,minWidth:130,fontSize:12,color:"#bbb",paddingRight:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</div>
-                <div style={{flex:1,position:"relative",height:18,background:"rgba(255,255,255,0.05)",borderRadius:3}}>
-                  <div style={{position:"absolute",left:pct(t.start)+"%",width:wid(t.start,t.end)+"%",height:"100%",borderRadius:3,minWidth:4,
-                    background:t.status==="done"?"#639922":t.status==="inprogress"?"#378ADD":"#888",
-                    display:"flex",alignItems:"center",paddingLeft:6,overflow:"hidden"}}>
-                    <span style={{fontSize:10,color:"rgba(255,255,255,0.8)",whiteSpace:"nowrap"}}>{TL[t.status]}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{display:"flex",gap:16,marginTop:10,flexWrap:"wrap"}}>
-          {Object.keys(TC).map(function(s){return(
-            <span key={s} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#aaa"}}>
-              <span style={{width:10,height:10,borderRadius:2,background:TC[s],display:"inline-block"}}/>{TL[s]}
-            </span>
-          );})}
-        </div>
-      </div>
-    </div>
+function Gantt(props){
+  var tasks=props.tasks;
+  if(!tasks.length)return React.createElement("div",{style:{color:"#666",fontSize:13,padding:"12px 0"}},"No tasks yet.");
+  var dates=[];
+  tasks.forEach(function(t){dates.push(new Date(t.start));dates.push(new Date(t.end));});
+  var minD=new Date(Math.min.apply(null,dates));
+  var maxD=new Date(Math.max.apply(null,dates));
+  var span=Math.max((maxD-minD)/86400000,1);
+  function pct(d){return Math.max(0,((new Date(d)-minD)/86400000/span)*100);}
+  function wid(s,e){return Math.max(2,((new Date(e)-new Date(s))/86400000/span)*100);}
+  function fmt(d){var dt=new Date(d);return dt.getDate()+" "+dt.toLocaleString("default",{month:"short"});}
+  var tp=((new Date()-minD)/86400000/span)*100;
+  return React.createElement("div",{style:{overflowX:"auto"}},
+    React.createElement("div",{style:{minWidth:480}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:8,paddingLeft:140}},
+        React.createElement("span",null,fmt(minD)),React.createElement("span",null,fmt(maxD))
+      ),
+      React.createElement("div",{style:{position:"relative"}},
+        tp>=0&&tp<=100&&React.createElement("div",{style:{position:"absolute",left:"calc(140px + "+tp+"% * (100% - 140px) / 100)",top:0,bottom:0,width:1,background:"rgba(210,80,80,0.5)",zIndex:2}}),
+        tasks.map(function(t){
+          return React.createElement("div",{key:t.id,style:{display:"flex",alignItems:"center",marginBottom:6,minHeight:28}},
+            React.createElement("div",{style:{width:130,minWidth:130,fontSize:12,color:"#bbb",paddingRight:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},t.name),
+            React.createElement("div",{style:{flex:1,position:"relative",height:18,background:"rgba(255,255,255,0.05)",borderRadius:3}},
+              React.createElement("div",{style:{position:"absolute",left:pct(t.start)+"%",width:wid(t.start,t.end)+"%",height:"100%",borderRadius:3,minWidth:4,
+                background:t.status==="done"?"#639922":t.status==="inprogress"?"#378ADD":"#888",
+                display:"flex",alignItems:"center",paddingLeft:6,overflow:"hidden"}},
+                React.createElement("span",{style:{fontSize:10,color:"rgba(255,255,255,0.8)",whiteSpace:"nowrap"}},TL[t.status])
+              )
+            )
+          );
+        })
+      ),
+      React.createElement("div",{style:{display:"flex",gap:16,marginTop:10,flexWrap:"wrap"}},
+        Object.keys(TC).map(function(s){
+          return React.createElement("span",{key:s,style:{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#aaa"}},
+            React.createElement("span",{style:{width:10,height:10,borderRadius:2,background:TC[s],display:"inline-block"}}),TL[s]
+          );
+        })
+      )
+    )
   );
-}
-
-function Sync({status}){
-  if(status==="idle")return null;
-  const map={saving:"⏳ Saving...",saved:"✅ Saved",error:"❌ Sync error"};
-  const col={saving:"#BA7517",saved:"#1D9E75",error:"#E24B4A"};
-  return <span style={{fontSize:11,color:col[status],marginLeft:12}}>{map[status]}</span>;
 }
 
 function App(){
-  const [projects,setProjects]=React.useState([]);
-  const [loading,setLoading]=React.useState(true);
-  const [sync,setSync]=React.useState("idle");
-  const [view,setView]=React.useState("home");
-  const [aid,setAid]=React.useState(null);
-  const [addPOpen,setAddPOpen]=React.useState(false);
-  const [np,setNp]=React.useState({name:"",description:"",color:PC[0],status:"active"});
-  const [addTOpen,setAddTOpen]=React.useState(false);
-  const [nt,setNt]=React.useState({name:"",status:"todo",start:tod(),end:addD(tod(),7)});
-  const [editT,setEditT]=React.useState(null);
-  const [delConf,setDelConf]=React.useState(null);
-  const [activeTask,setActiveTask]=React.useState(null);
-  const [impPrev,setImpPrev]=React.useState(null);
-  const [impErr,setImpErr]=React.useState("");
-  const dragItem=React.useRef(null);
-  const dragOver=React.useRef(null);
+  var useState=React.useState;
+  var useEffect=React.useEffect;
+  var useRef=React.useRef;
+  var useCallback=React.useCallback;
 
-  React.useEffect(function(){
+  var ps=useState([]);var projects=ps[0];var setProjects=ps[1];
+  var ls=useState(true);var loading=ls[0];var setLoading=ls[1];
+  var ss=useState("idle");var sync=ss[0];var setSync=ss[1];
+  var vs=useState("home");var view=vs[0];var setView=vs[1];
+  var as=useState(null);var aid=as[0];var setAid=as[1];
+  var aps=useState(false);var addPOpen=aps[0];var setAddPOpen=aps[1];
+  var nps=useState({name:"",description:"",color:PC[0],status:"active"});var np=nps[0];var setNp=nps[1];
+  var ats=useState(false);var addTOpen=ats[0];var setAddTOpen=ats[1];
+  var nts=useState({name:"",status:"todo",start:tod(),end:addD(tod(),7)});var nt=nts[0];var setNt=nts[1];
+  var ets=useState(null);var editT=ets[0];var setEditT=ets[1];
+  var ds=useState(null);var delConf=ds[0];var setDelConf=ds[1];
+  var ios=useState(false);var impOpen=ios[0];var setImpOpen=ios[1];
+  var ips=useState(null);var impPrev=ips[0];var setImpPrev=ips[1];
+  var ies=useState("");var impErr=ies[0];var setImpErr=ies[1];
+  var aks=useState(null);var activeTask=aks[0];var setActiveTask=aks[1];
+  var dragItem=useRef(null);
+  var dragOver=useRef(null);
+
+  useEffect(function(){
     dbLoad().then(function(data){
       setProjects(data&&data.length?data:[]);
       setLoading(false);
     });
   },[]);
 
-  const persist=React.useCallback(async function(updated){
+  var persist=useCallback(function(updated){
     setSync("saving");
-    try{await dbSaveAll(updated);setSync("saved");setTimeout(function(){setSync("idle");},2000);}
-    catch(e){setSync("error");console.error(e);}
+    return dbSaveAll(updated).then(function(){
+      setSync("saved");
+      setTimeout(function(){setSync("idle");},2000);
+    }).catch(function(e){setSync("error");console.error(e);});
   },[]);
 
-  const proj=projects.find(function(p){return p.id===aid;});
-  const overdue=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.status!=="done"&&t.end<tod();}).length;
-  const thisWeek=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.status!=="done"&&t.end>=tod()&&t.end<=addD(tod(),7);}).length;
-  const totalT=projects.flatMap(function(p){return p.tasks;}).length;
+  var proj=projects.find(function(p){return p.id===aid;});
+  var overdue=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.status!=="done"&&t.end<tod();}).length;
+  var thisWeek=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.status!=="done"&&t.end>=tod()&&t.end<=addD(tod(),7);}).length;
+  var totalT=projects.flatMap(function(p){return p.tasks;}).length;
 
-  const openP=function(id){setAid(id);setView("detail");};
-  const goHome=function(){setView("home");setAid(null);setAddTOpen(false);setEditT(null);};
+  function openP(id){setAid(id);setView("detail");setActiveTask(null);}
+  function goHome(){setView("home");setAid(null);setAddTOpen(false);setEditT(null);setActiveTask(null);}
 
-  // DRAG: Projects
-  const onPDragStart=function(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";};
-  const onPDragEnter=function(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");};
-  const onPDragLeave=function(e){e.currentTarget.classList.remove("drag-over");};
-  const onPDragOver=function(e){e.preventDefault();};
-  const onPDrop=async function(e){
+  function onPDragStart(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";}
+  function onPDragEnter(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");}
+  function onPDragLeave(e){e.currentTarget.classList.remove("drag-over");}
+  function onPDragOver(e){e.preventDefault();}
+  function onPDrop(e){
     e.currentTarget.classList.remove("drag-over");
-    const from=dragItem.current;
-    const to=dragOver.current;
+    var from=dragItem.current;var to=dragOver.current;
     if(from===null||to===null||from===to){dragItem.current=null;dragOver.current=null;return;}
-    const u=[...projects];
-    const item=u.splice(from,1)[0];
-    u.splice(to,0,item);
+    var u=projects.slice();var item=u.splice(from,1)[0];u.splice(to,0,item);
     dragItem.current=null;dragOver.current=null;
-    setProjects(u);
-    await persist(u);
-  };
+    setProjects(u);persist(u);
+  }
 
-  // DRAG: Tasks
-  const onTDragStart=function(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";};
-  const onTDragEnter=function(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");};
-  const onTDragLeave=function(e){e.currentTarget.classList.remove("drag-over");};
-  const onTDragOver=function(e){e.preventDefault();};
-  const onTDrop=async function(e){
+  function onTDragStart(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";}
+  function onTDragEnter(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");}
+  function onTDragLeave(e){e.currentTarget.classList.remove("drag-over");}
+  function onTDragOver(e){e.preventDefault();}
+  function onTDrop(e){
     e.currentTarget.classList.remove("drag-over");
-    const from=dragItem.current;
-    const to=dragOver.current;
+    var from=dragItem.current;var to=dragOver.current;
     if(from===null||to===null||from===to){dragItem.current=null;dragOver.current=null;return;}
-    const u=projects.map(function(p){
+    var u=projects.map(function(p){
       if(p.id!==aid)return p;
-      const tasks=[...p.tasks];
-      const item=tasks.splice(from,1)[0];
-      tasks.splice(to,0,item);
+      var tasks=p.tasks.slice();var item=tasks.splice(from,1)[0];tasks.splice(to,0,item);
       return Object.assign({},p,{tasks:tasks});
     });
     dragItem.current=null;dragOver.current=null;
-    setProjects(u);
-    await persist(u);
-  };
+    setProjects(u);persist(u);
+  }
 
-  const addProject=async function(){
+  function addProject(){
     if(!np.name.trim())return;
-    const p=Object.assign({},np,{id:uid(),tasks:[]});
-    const u=[...projects,p];
+    var p=Object.assign({},np,{id:uid(),tasks:[]});
+    var u=projects.concat([p]);
     setProjects(u);setNp({name:"",description:"",color:PC[0],status:"active"});setAddPOpen(false);
-    await persist(u);
-  };
+    persist(u);
+  }
 
-  const delProject=async function(id){
-    const u=projects.filter(function(p){return p.id!==id;});
-    setProjects(u);setDelConf(null);await persist(u);
-  };
+  function delProject(id){
+    var u=projects.filter(function(p){return p.id!==id;});
+    setProjects(u);setDelConf(null);persist(u);
+  }
 
-  const updProject=async function(id,changes){
-    const u=projects.map(function(p){return p.id===id?Object.assign({},p,changes):p;});
-    setProjects(u);await persist(u);
-  };
+  function updProject(id,changes){
+    var u=projects.map(function(p){return p.id===id?Object.assign({},p,changes):p;});
+    setProjects(u);persist(u);
+  }
 
-  const addTask=async function(){
+  function addTask(){
     if(!nt.name.trim())return;
-    const t=Object.assign({},nt,{id:uid(),subtasks:[]});
-    const u=projects.map(function(p){return p.id===aid?Object.assign({},p,{tasks:[...p.tasks,t]}):p;});
+    var t=Object.assign({},nt,{id:uid(),subtasks:[]});
+    var u=projects.map(function(p){return p.id===aid?Object.assign({},p,{tasks:p.tasks.concat([t])}):p;});
     setProjects(u);setNt({name:"",status:"todo",start:tod(),end:addD(tod(),7)});setAddTOpen(false);
-    await persist(u);
-  };
+    persist(u);
+  }
 
-  const delTask=async function(tid){
-    const u=projects.map(function(p){return p.id===aid?Object.assign({},p,{tasks:p.tasks.filter(function(t){return t.id!==tid;})}):p;});
-    setProjects(u);await persist(u);
-  };
+  function delTask(tid){
+    var u=projects.map(function(p){return p.id===aid?Object.assign({},p,{tasks:p.tasks.filter(function(t){return t.id!==tid;})}):p;});
+    setProjects(u);persist(u);
+  }
 
-  const updTask=async function(tid,changes){
-    const u=projects.map(function(p){
+  function updTask(tid,changes){
+    var u=projects.map(function(p){
       return p.id===aid?Object.assign({},p,{tasks:p.tasks.map(function(t){return t.id===tid?Object.assign({},t,changes):t;})}):p;
     });
-    setProjects(u);await persist(u);
-  };
+    setProjects(u);persist(u);
+  }
 
-  const saveEdit=async function(){
+  function saveEdit(){
     if(!editT)return;
-    await updTask(editT.id,editT);setEditT(null);
-  };
+    updTask(editT.id,editT);setEditT(null);
+  }
 
-  const exportBackup=function(){
-    const data={
+  function exportBackup(){
+    var data={
       name:"Project Hub Backup",desc:"Exported "+new Date().toLocaleDateString(),
       lists:projects.map(function(p,i){return{id:p.id,name:p.name,closed:false,pos:(i+1)*65536};}),
       cards:projects.flatMap(function(p){
@@ -272,18 +262,18 @@ function App(){
       }),
       labels:[],members:[],exportedAt:new Date().toISOString()
     };
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");a.href=url;
     a.download="projecthub-backup-"+tod()+".json";a.click();URL.revokeObjectURL(url);
-  };
+  }
 
-  const handleTrello=async function(e){
-    setImpErr("");const file=e.target.files[0];if(!file)return;
-    try{
-      const text=await file.text();const board=JSON.parse(text);
-      const lists=board.lists.filter(function(l){return!l.closed;});
-      const cards=board.cards.filter(function(c){return!c.closed;});
+  function handleTrello(e){
+    setImpErr("");var file=e.target.files[0];if(!file)return;
+    file.text().then(function(text){
+      var board=JSON.parse(text);
+      var lists=board.lists.filter(function(l){return!l.closed;});
+      var cards=board.cards.filter(function(c){return!c.closed;});
       setImpPrev(lists.map(function(l,i){
         return{id:uid(),name:l.name,description:"",color:PC[i%PC.length],status:"active",
           tasks:cards.filter(function(c){return c.idList===l.id;}).map(function(c){
@@ -291,19 +281,19 @@ function App(){
               start:c.due?c.due.slice(0,10):tod(),end:c.due?c.due.slice(0,10):addD(tod(),7),subtasks:[]};
           })};
       }));
-    }catch(e){setImpErr("Invalid Trello JSON file.");}
-  };
+    }).catch(function(){setImpErr("Invalid Trello JSON file.");});
+  }
 
-  const doImport=async function(mode){
+  function doImport(mode){
     if(!impPrev)return;
-    const u=mode==="replace"?impPrev:[...projects,...impPrev];
-    setProjects(u);await persist(u);
+    var u=mode==="replace"?impPrev:projects.concat(impPrev);
+    setProjects(u);persist(u);
     setImpOpen(false);setImpPrev(null);setImpErr("");
-  };
+  }
 
-  const nextT=function(p){return p.tasks.find(function(t){return t.status!=="done";})||p.tasks[0];};
+  function nextT(p){return p.tasks.find(function(t){return t.status!=="done";})||p.tasks[0];}
 
-  const st={
+  var st={
     topBar:{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"},
     statCard:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,padding:"12px 18px",minWidth:110},
     card:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:14,padding:"18px",cursor:"grab",transition:"border-color .2s,transform .15s"},
@@ -315,335 +305,288 @@ function App(){
     mbox:{background:"#1a1d27",border:"1px solid #2d3045",borderRadius:16,padding:"24px",width:400,maxWidth:"95vw"},
     lbl:{fontSize:12,color:"#888",marginBottom:4,display:"block"},
     sec:{fontSize:13,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12},
-    trow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"#111318",borderRadius:9,marginBottom:7,border:"1px solid #222",cursor:"grab"}
+    trow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,marginBottom:0,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
   };
 
   if(loading)return(
-    <div style={{minHeight:"100vh",background:"#111318",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
-      <div style={{width:36,height:36,border:"3px solid #2a2d3a",borderTop:"3px solid #7F77DD",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-      <span style={{color:"#666",fontSize:13}}>Loading your projects...</span>
-    </div>
+    React.createElement("div",{style:{minHeight:"100vh",background:"#111318",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}},
+      React.createElement("div",{style:{width:36,height:36,border:"3px solid #2a2d3a",borderTop:"3px solid #7F77DD",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}),
+      React.createElement("span",{style:{color:"#666",fontSize:13}},"Loading your projects...")
+    )
   );
 
   return(
-    <div style={{minHeight:"100vh",background:"#111318",color:"#e8e8f0",fontFamily:"system-ui,sans-serif",paddingBottom:40}}>
-      <div style={st.topBar}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          {view==="detail"&&<button style={Object.assign({},st.btnSm,{marginRight:4})} onClick={goHome}>Back</button>}
-          {view==="home"?<span style={{fontWeight:600,fontSize:17,color:"#fff"}}>Project Hub</span>
-            :<input value={proj?proj.name:""} onChange={function(e){updProject(proj.id,{name:e.target.value});}}
-              style={{background:"transparent",border:"none",borderBottom:"1px solid #444",color:"#fff",fontSize:17,fontWeight:600,outline:"none",padding:"2px 4px",minWidth:180}}/>}
-          {view==="detail"&&proj&&(
-            <select value={proj.status} onChange={function(e){updProject(proj.id,{status:e.target.value});}}
-              style={Object.assign({},st.sel,{width:"auto",fontSize:12,padding:"4px 8px",marginLeft:8})}>
-              {Object.keys(SC).map(function(k){return<option key={k} value={k}>{SC[k].label}</option>;})}
-            </select>
-          )}
-          <Sync status={sync}/>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          {view==="home"&&<button style={st.btn} onClick={function(){setAddPOpen(true);}}>+ New Project</button>}
-          {view==="home"&&<button style={st.btnSm} onClick={function(){setImpOpen(true);}}>Import Trello</button>}
-          {view==="home"&&<button style={Object.assign({},st.btnSm,{borderColor:"#1D9E75",color:"#1D9E75"})} onClick={exportBackup}>Backup</button>}
-          {view==="detail"&&<button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={function(){setAddTOpen(true);}}>+ Add Task</button>}
-        </div>
-      </div>
+    React.createElement("div",{style:{minHeight:"100vh",background:"#111318",color:"#e8e8f0",fontFamily:"system-ui,sans-serif",paddingBottom:40}},
 
-      {view==="home"&&(
-        <div>
-          <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}}>
-            <div style={st.statCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
-            <div style={st.statCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
-            <div style={Object.assign({},st.statCard,{borderColor:thisWeek?"#378ADD44":"#2a2d3a"})}>
-              <div style={{fontSize:22,fontWeight:600,color:thisWeek?"#378ADD":"#fff"}}>{thisWeek}</div>
-              <div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Due This Week</div>
-            </div>
-            <div style={Object.assign({},st.statCard,{borderColor:overdue?"#E24B4A55":"#2a2d3a"})}>
-              <div style={{fontSize:22,fontWeight:600,color:overdue?"#E24B4A":"#fff"}}>{overdue}</div>
-              <div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Overdue</div>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16,padding:"20px 24px 0"}}>
-            {projects.map(function(p,idx){
-              const nt2=nextT(p);
-              const isOD=p.tasks.some(function(t){return t.status!=="done"&&t.end<tod();});
-              return(
-                <div key={p.id}
-                  draggable="true"
-                  onDragStart={function(e){onPDragStart(e,idx);}}
-                  onDragEnter={function(e){onPDragEnter(e,idx);}}
-                  onDragLeave={onPDragLeave}
-                  onDragOver={onPDragOver}
-                  onDrop={onPDrop}
-                  style={Object.assign({},st.card,{borderColor:isOD?"#E24B4A44":"#2a2d3a"})}
-                  onClick={function(){openP(p.id);}}
-                  onMouseEnter={function(e){e.currentTarget.style.borderColor=p.color;e.currentTarget.style.transform="translateY(-2px)";}}
-                  onMouseLeave={function(e){e.currentTarget.style.borderColor=isOD?"#E24B4A44":"#2a2d3a";e.currentTarget.style.transform="";}}
-                >
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-                      <span style={{color:"#444",fontSize:12,cursor:"grab",marginRight:2}}>⠿</span>
-                      <span style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}/>
-                      <span style={{fontWeight:600,fontSize:15,color:"#fff"}}>{p.name}</span>
-                    </div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                      <SBadge status={p.status}/>
-                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:14,padding:"2px 4px"}}
-                        onClick={function(e){e.stopPropagation();setDelConf(p.id);}}>x</button>
-                    </div>
-                  </div>
-                  <div style={{fontSize:12,color:"#888",lineHeight:1.5,marginBottom:10}}>{p.description||<span style={{fontStyle:"italic",color:"#555"}}>No description</span>}</div>
-                  {nt2&&(
-                    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#bbb",borderLeft:"3px solid "+p.color}}>
-                      <span style={{color:"#666",fontSize:11}}>NEXT: </span>{nt2.name}
-                      <span style={{marginLeft:6,fontSize:10,color:TC[nt2.status]}}>{TL[nt2.status]}</span>
-                    </div>
-                  )}
-                  <PBar tasks={p.tasks} color={p.color}/>
-                </div>
+      // TOP BAR
+      React.createElement("div",{style:st.topBar},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},
+          view==="detail"&&React.createElement("button",{style:Object.assign({},st.btnSm,{marginRight:4}),onClick:goHome},"Back"),
+          view==="home"
+            ?React.createElement("span",{style:{fontWeight:600,fontSize:17,color:"#fff"}},"Project Hub")
+            :React.createElement("input",{value:proj?proj.name:"",onChange:function(e){updProject(proj.id,{name:e.target.value});},
+              style:{background:"transparent",border:"none",borderBottom:"1px solid #444",color:"#fff",fontSize:17,fontWeight:600,outline:"none",padding:"2px 4px",minWidth:180}}),
+          view==="detail"&&proj&&React.createElement("select",{value:proj.status,onChange:function(e){updProject(proj.id,{status:e.target.value});},
+            style:Object.assign({},st.sel,{width:"auto",fontSize:12,padding:"4px 8px",marginLeft:8})},
+            Object.keys(SC).map(function(k){return React.createElement("option",{key:k,value:k},SC[k].label);})),
+          sync!=="idle"&&React.createElement("span",{style:{fontSize:11,color:sync==="saving"?"#BA7517":sync==="saved"?"#1D9E75":"#E24B4A",marginLeft:12}},
+            sync==="saving"?"⏳ Saving...":sync==="saved"?"✅ Saved":"❌ Sync error")
+        ),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          view==="home"&&React.createElement("button",{style:st.btn,onClick:function(){setAddPOpen(true);}},"+ New Project"),
+          view==="home"&&React.createElement("button",{style:st.btnSm,onClick:function(){setImpOpen(true);}},"Import Trello"),
+          view==="home"&&React.createElement("button",{style:Object.assign({},st.btnSm,{borderColor:"#1D9E75",color:"#1D9E75"}),onClick:exportBackup},"Backup"),
+          view==="detail"&&React.createElement("button",{style:Object.assign({},st.btn,{background:"#1D9E75"}),onClick:function(){setAddTOpen(true);}},"+ Add Task")
+        )
+      ),
+
+      // HOME
+      view==="home"&&React.createElement("div",null,
+        React.createElement("div",{style:{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}},
+          React.createElement("div",{style:st.statCard},React.createElement("div",{style:{fontSize:22,fontWeight:600,color:"#fff"}},projects.length),React.createElement("div",{style:{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}},"Projects")),
+          React.createElement("div",{style:st.statCard},React.createElement("div",{style:{fontSize:22,fontWeight:600,color:"#fff"}},totalT),React.createElement("div",{style:{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}},"Total Tasks")),
+          React.createElement("div",{style:Object.assign({},st.statCard,{borderColor:thisWeek?"#378ADD44":"#2a2d3a"})},React.createElement("div",{style:{fontSize:22,fontWeight:600,color:thisWeek?"#378ADD":"#fff"}},thisWeek),React.createElement("div",{style:{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}},"Due This Week")),
+          React.createElement("div",{style:Object.assign({},st.statCard,{borderColor:overdue?"#E24B4A55":"#2a2d3a"})},React.createElement("div",{style:{fontSize:22,fontWeight:600,color:overdue?"#E24B4A":"#fff"}},overdue),React.createElement("div",{style:{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}},"Overdue"))
+        ),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16,padding:"20px 24px 0"}},
+          projects.map(function(p,idx){
+            var nt2=nextT(p);
+            var isOD=p.tasks.some(function(t){return t.status!=="done"&&t.end<tod();});
+            return React.createElement("div",{key:p.id,draggable:true,
+              onDragStart:function(e){onPDragStart(e,idx);},
+              onDragEnter:function(e){onPDragEnter(e,idx);},
+              onDragLeave:onPDragLeave,onDragOver:onPDragOver,onDrop:onPDrop,
+              style:Object.assign({},st.card,{borderColor:isOD?"#E24B4A44":"#2a2d3a"}),
+              onClick:function(){openP(p.id);},
+              onMouseEnter:function(e){e.currentTarget.style.borderColor=p.color;e.currentTarget.style.transform="translateY(-2px)";},
+              onMouseLeave:function(e){e.currentTarget.style.borderColor=isOD?"#E24B4A44":"#2a2d3a";e.currentTarget.style.transform="";}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
+                React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,flex:1}},
+                  React.createElement("span",{style:{color:"#444",fontSize:12,cursor:"grab",marginRight:2}},"⠿"),
+                  React.createElement("span",{style:{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}),
+                  React.createElement("span",{style:{fontWeight:600,fontSize:15,color:"#fff"}},p.name)
+                ),
+                React.createElement("div",{style:{display:"flex",gap:6,alignItems:"center"}},
+                  React.createElement(SBadge,{status:p.status}),
+                  React.createElement("button",{style:{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:14,padding:"2px 4px"},
+                    onClick:function(e){e.stopPropagation();setDelConf(p.id);}},"x")
+                )
+              ),
+              React.createElement("div",{style:{fontSize:12,color:"#888",lineHeight:1.5,marginBottom:10}},p.description||React.createElement("span",{style:{fontStyle:"italic",color:"#555"}},"No description")),
+              nt2&&React.createElement("div",{style:{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#bbb",borderLeft:"3px solid "+p.color}},
+                React.createElement("span",{style:{color:"#666",fontSize:11}},"NEXT: "),nt2.name,
+                React.createElement("span",{style:{marginLeft:6,fontSize:10,color:TC[nt2.status]}},TL[nt2.status])
+              ),
+              React.createElement(PBar,{tasks:p.tasks,color:p.color})
+            );
+          })
+        )
+      ),
+
+      // DETAIL
+      view==="detail"&&proj&&React.createElement("div",{style:{display:"flex"}},
+        React.createElement("div",{style:{flex:1,padding:"20px 24px",minWidth:0}},
+          React.createElement("div",{style:{marginBottom:24}},
+            React.createElement("div",{style:st.sec},"Tasks"),
+            proj.tasks.length===0&&React.createElement("div",{style:{color:"#555",fontSize:13}},"No tasks yet."),
+            proj.tasks.map(function(t,idx){
+              var isOD=t.status!=="done"&&t.end<tod();
+              var subs=t.subtasks||[];
+              var subDone=subs.filter(function(s){return s.done;}).length;
+              var isOpen=activeTask===t.id;
+              return React.createElement("div",{key:t.id,draggable:true,
+                onDragStart:function(e){onTDragStart(e,idx);},
+                onDragEnter:function(e){onTDragEnter(e,idx);},
+                onDragLeave:onTDragLeave,onDragOver:onTDragOver,onDrop:onTDrop,
+                style:{marginBottom:6}},
+                React.createElement("div",{
+                  style:Object.assign({},st.trow,{
+                    borderColor:isOpen?"#D4537E55":isOD?"#E24B4A44":"#222",
+                    background:isOpen?"rgba(212,83,126,0.07)":"#111318"
+                  }),
+                  onClick:function(){setActiveTask(isOpen?null:t.id);}},
+                  React.createElement("span",{style:{color:"#444",fontSize:14,cursor:"grab"},onClick:function(e){e.stopPropagation();}},"⠿"),
+                  React.createElement("span",{style:{width:8,height:8,borderRadius:"50%",background:TC[t.status],display:"inline-block",flexShrink:0}}),
+                  React.createElement("span",{style:{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}},
+                    t.name,
+                    subs.length>0&&React.createElement("span",{style:{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.7)":"#555"}},subDone+"/"+subs.length)
+                  ),
+                  React.createElement("span",{style:{fontSize:11,color:"#555"}},t.start+" to "+t.end),
+                  isOD&&React.createElement("span",{style:{fontSize:10,color:"#E24B4A",fontWeight:600}},"OVERDUE"),
+                  React.createElement("select",{value:t.status,
+                    onChange:function(e){e.stopPropagation();updTask(t.id,{status:e.target.value});},
+                    onClick:function(e){e.stopPropagation();},
+                    style:Object.assign({},st.sel,{width:"auto",fontSize:11,padding:"3px 6px",color:TC[t.status]})},
+                    TS.map(function(s){return React.createElement("option",{key:s,value:s},TL[s]);})
+                  ),
+                  React.createElement("button",{style:{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"},
+                    onClick:function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false}])});setActiveTask(t.id);}},"+Sub"),
+                  React.createElement("button",{style:{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"},
+                    onClick:function(e){e.stopPropagation();setEditT(Object.assign({},t));}},("Edit")),
+                  React.createElement("button",{style:{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"},
+                    onClick:function(e){e.stopPropagation();delTask(t.id);}},"x"),
+                  React.createElement("span",{style:{color:isOpen?"#D4537E":"#444",fontSize:10,marginLeft:2}},isOpen?"▲":"▼")
+                ),
+                isOpen&&React.createElement("div",{style:{marginLeft:24,marginTop:4,marginBottom:4}},
+                  subs.length===0&&React.createElement("div",{style:{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}},"No subtasks yet — click +Sub to add one."),
+                  subs.map(function(s){
+                    return React.createElement("div",{key:s.id,style:{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}},
+                      React.createElement("input",{type:"checkbox",checked:s.done,onChange:function(e){
+                        updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});
+                      },style:{cursor:"pointer",accentColor:"#1D9E75"}}),
+                      React.createElement("input",{value:s.name,onChange:function(e){
+                        updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
+                      },style:{flex:1,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none"}}),
+                      React.createElement("button",{style:{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12},
+                        onClick:function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}},("x"))
+                    );
+                  })
+                )
               );
-            })}
-          </div>
-        </div>
-      )}
+            })
+          ),
+          React.createElement("div",{style:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"16px 18px"}},
+            React.createElement("div",{style:st.sec},"Gantt Chart"),
+            React.createElement(Gantt,{tasks:proj.tasks})
+          )
+        ),
 
-      {view==="detail"&&proj&&(
-        <div style={{display:"flex"}}>
-          <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
+        // SIDEBAR
+        React.createElement("div",{style:{width:"28%",minWidth:200,maxWidth:280,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}},
+          React.createElement("div",{style:{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}},"All Projects"),
+          projects.map(function(p){
+            var isAct=p.id===aid;
+            var pDone=p.tasks.filter(function(t){return t.status==="done";}).length;
+            var pPct=p.tasks.length?Math.round(pDone/p.tasks.length*100):0;
+            var isOD=p.tasks.some(function(t){return t.status!=="done"&&t.end<tod();});
+            return React.createElement("div",{key:p.id,onClick:function(){openP(p.id);},
+              style:{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
+                background:isAct?"rgba(127,119,221,0.15)":"transparent",
+                border:"1px solid "+(isAct?p.color:"#222"),transition:"all .15s"},
+              onMouseEnter:function(e){if(!isAct){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="#333";}},
+              onMouseLeave:function(e){if(!isAct){e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="#222";}}},
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:7,marginBottom:5}},
+                React.createElement("span",{style:{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}),
+                React.createElement("span",{style:{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},p.name),
+                isOD&&React.createElement("span",{style:{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}},"●")
+              ),
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
+                React.createElement("div",{style:{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}},
+                  React.createElement("div",{style:{height:3,borderRadius:2,background:p.color,width:pPct+"%"}})
+                ),
+                React.createElement("span",{style:{fontSize:10,color:"#555"}},pPct+"%")
+              )
+            );
+          })
+        )
+      ),
 
-            <div style={{marginBottom:24}}>
-              <div style={st.sec}>Tasks</div>
-              {proj.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
-              {proj.tasks.map(function(t,idx){
-                const isOD=t.status!=="done"&&t.end<tod();
-                const subs=t.subtasks||[];
-                const subDone=subs.filter(function(s){return s.done;}).length;
-                const isOpen=activeTask===t.id;
-                return(
-                  <div key={t.id}
-                    draggable="true"
-                    onDragStart={function(e){onTDragStart(e,idx);}}
-                    onDragEnter={function(e){onTDragEnter(e,idx);}}
-                    onDragLeave={onTDragLeave}
-                    onDragOver={onTDragOver}
-                    onDrop={onTDrop}
-                  >
-                    <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E44":isOD?"#E24B4A44":"#222",background:isOpen?"rgba(212,83,126,0.06)":"#111318",cursor:"pointer"})}
-                      onClick={function(){setActiveTask(isOpen?null:t.id);}}>
-                      <span style={{color:"#444",fontSize:14,cursor:"grab"}} onClick={function(e){e.stopPropagation();}}>⠿</span>
-                      <span style={{width:8,height:8,borderRadius:"50%",background:TC[t.status],display:"inline-block",flexShrink:0}}/>
-                      <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
-                        {t.name}
-                        {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"#D4537E88":"#555"}}>{subDone}/{subs.length}</span>}
-                      </span>
-                      <span style={{fontSize:11,color:"#555"}}>{t.start} to {t.end}</span>
-                      {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
-                      <select value={t.status} onChange={function(e){e.stopPropagation();updTask(t.id,{status:e.target.value});}}
-                        style={Object.assign({},st.sel,{width:"auto",fontSize:11,padding:"3px 6px",color:TC[t.status]})}
-                        onClick={function(e){e.stopPropagation();}}>
-                        {TS.map(function(s){return<option key={s} value={s}>{TL[s]}</option>;})}
-                      </select>
-                      <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
-                        onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:[...subs,{id:uid(),name:"New subtask",done:false}]});setActiveTask(t.id);}}>+Sub</button>
-                      <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
-                        onClick={function(e){e.stopPropagation();setEditT(Object.assign({},t));}}>Edit</button>
-                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
-                        onClick={function(e){e.stopPropagation();delTask(t.id);}}>x</button>
-                      <span style={{color:isOpen?"#D4537E":"#444",fontSize:11,marginLeft:2}}>{isOpen?"▲":"▼"}</span>
-                    </div>
-                    {isOpen&&subs.length>0&&(
-                      <div style={{marginLeft:24,marginBottom:6}}>
-                        {subs.map(function(s){return(
-                          <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}>
-                            <input type="checkbox" checked={s.done} onChange={function(e){
-                              updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});
-                            }} style={{cursor:"pointer",accentColor:"#1D9E75"}}/>
-                            <input value={s.name} onChange={function(e){
-                              updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
-                            }} style={{flex:1,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none"}}/>
-                            <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
-                              onClick={function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}}>x</button>
-                          </div>
-                        );})}
-                      </div>
-                    )}
-                    {isOpen&&subs.length===0&&(
-                      <div style={{marginLeft:24,marginBottom:8,fontSize:12,color:"#555",fontStyle:"italic"}}>No subtasks yet — click +Sub to add one.</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"16px 18px"}}>
-              <div style={st.sec}>Gantt Chart</div>
-              <Gantt tasks={proj.tasks}/>
-            </div>
-          </div>
+      // ADD PROJECT MODAL
+      addPOpen&&React.createElement("div",{style:st.modal,onClick:function(){setAddPOpen(false);}},
+        React.createElement("div",{style:st.mbox,onClick:function(e){e.stopPropagation();}},
+          React.createElement("div",{style:{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}},"New Project"),
+          React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:st.lbl},"Project Name"),React.createElement("input",{style:st.inp,value:np.name,onChange:function(e){setNp(function(p){return Object.assign({},p,{name:e.target.value});});},placeholder:"e.g. Website Redesign"})),
+          React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:st.lbl},"Description"),React.createElement("textarea",{style:Object.assign({},st.inp,{resize:"vertical",minHeight:60}),value:np.description,onChange:function(e){setNp(function(p){return Object.assign({},p,{description:e.target.value});});},placeholder:"Short summary..."})),
+          React.createElement("div",{style:{marginBottom:12,display:"flex",gap:12}},
+            React.createElement("div",{style:{flex:1}},React.createElement("label",{style:st.lbl},"Status"),
+              React.createElement("select",{style:st.sel,value:np.status,onChange:function(e){setNp(function(p){return Object.assign({},p,{status:e.target.value});});}},
+                Object.keys(SC).map(function(k){return React.createElement("option",{key:k,value:k},SC[k].label);}))),
+            React.createElement("div",null,React.createElement("label",{style:st.lbl},"Colour"),
+              React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}},
+                PC.map(function(c){return React.createElement("div",{key:c,onClick:function(){setNp(function(p){return Object.assign({},p,{color:c});});},
+                  style:{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",border:np.color===c?"2px solid #fff":"2px solid transparent"}});})
+              ))
+          ),
+          React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}},
+            React.createElement("button",{style:st.btnSm,onClick:function(){setAddPOpen(false);}},"Cancel"),
+            React.createElement("button",{style:st.btn,onClick:addProject},"Create Project")
+          )
+        )
+      ),
 
-          <div style={{width:"28%",minWidth:200,maxWidth:280,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
-            <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
-            {projects.map(function(p){
-              const isAct=p.id===aid;
-              const pDone=p.tasks.filter(function(t){return t.status==="done";}).length;
-              const pPct=p.tasks.length?Math.round(pDone/p.tasks.length*100):0;
-              const isOD=p.tasks.some(function(t){return t.status!=="done"&&t.end<tod();});
-              return(
-                <div key={p.id} onClick={function(){openP(p.id);}}
-                  style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
-                    background:isAct?"rgba(127,119,221,0.15)":"transparent",
-                    border:"1px solid "+(isAct?p.color:"#222"),transition:"all .15s"}}
-                  onMouseEnter={function(e){if(!isAct){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="#333";}}}
-                  onMouseLeave={function(e){if(!isAct){e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="#222";}}}
-                >
-                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
-                    <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-                    {isOD&&<span style={{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}}>●</span>}
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
-                      <div style={{height:3,borderRadius:2,background:p.color,width:pPct+"%"}}/>
-                    </div>
-                    <span style={{fontSize:10,color:"#555"}}>{pPct}%</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      // ADD TASK MODAL
+      addTOpen&&React.createElement("div",{style:st.modal,onClick:function(){setAddTOpen(false);}},
+        React.createElement("div",{style:st.mbox,onClick:function(e){e.stopPropagation();}},
+          React.createElement("div",{style:{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}},"Add Task"),
+          React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:st.lbl},"Task Name"),React.createElement("input",{style:st.inp,value:nt.name,onChange:function(e){setNt(function(t){return Object.assign({},t,{name:e.target.value});});},placeholder:"e.g. Write copy"})),
+          React.createElement("div",{style:{marginBottom:12,display:"flex",gap:10}},
+            React.createElement("div",{style:{flex:1}},React.createElement("label",{style:st.lbl},"Start"),React.createElement("input",{type:"date",style:st.inp,value:nt.start,onChange:function(e){setNt(function(t){return Object.assign({},t,{start:e.target.value});});}})),
+            React.createElement("div",{style:{flex:1}},React.createElement("label",{style:st.lbl},"End"),React.createElement("input",{type:"date",style:st.inp,value:nt.end,onChange:function(e){setNt(function(t){return Object.assign({},t,{end:e.target.value});});}}))
+          ),
+          React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:st.lbl},"Status"),
+            React.createElement("select",{style:st.sel,value:nt.status,onChange:function(e){setNt(function(t){return Object.assign({},t,{status:e.target.value});});}},
+              TS.map(function(s){return React.createElement("option",{key:s,value:s},TL[s]);}))),
+          React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}},
+            React.createElement("button",{style:st.btnSm,onClick:function(){setAddTOpen(false);}},"Cancel"),
+            React.createElement("button",{style:st.btn,onClick:addTask},"Add Task")
+          )
+        )
+      ),
 
-      {addPOpen&&(
-        <div style={st.modal} onClick={function(){setAddPOpen(false);}}>
-          <div style={st.mbox} onClick={function(e){e.stopPropagation();}}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>New Project</div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Project Name</label>
-              <input style={st.inp} value={np.name} onChange={function(e){setNp(function(p){return Object.assign({},p,{name:e.target.value});});}} placeholder="e.g. Website Redesign"/></div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Description</label>
-              <textarea style={Object.assign({},st.inp,{resize:"vertical",minHeight:60})} value={np.description} onChange={function(e){setNp(function(p){return Object.assign({},p,{description:e.target.value});});}} placeholder="Short summary..."/></div>
-            <div style={{marginBottom:12,display:"flex",gap:12}}>
-              <div style={{flex:1}}><label style={st.lbl}>Status</label>
-                <select style={st.sel} value={np.status} onChange={function(e){setNp(function(p){return Object.assign({},p,{status:e.target.value});});}}>
-                  {Object.keys(SC).map(function(k){return<option key={k} value={k}>{SC[k].label}</option>;})}
-                </select></div>
-              <div><label style={st.lbl}>Colour</label>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                  {PC.map(function(c){return(
-                    <div key={c} onClick={function(){setNp(function(p){return Object.assign({},p,{color:c});});}}
-                      style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",border:np.color===c?"2px solid #fff":"2px solid transparent"}}/>
-                  );})}
-                </div></div>
-            </div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
-              <button style={st.btnSm} onClick={function(){setAddPOpen(false);}}>Cancel</button>
-              <button style={st.btn} onClick={addProject}>Create Project</button>
-            </div>
-          </div>
-        </div>
-      )}
+      // EDIT TASK MODAL
+      editT&&React.createElement("div",{style:st.modal,onClick:function(){setEditT(null);}},
+        React.createElement("div",{style:st.mbox,onClick:function(e){e.stopPropagation();}},
+          React.createElement("div",{style:{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}},"Edit Task"),
+          React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:st.lbl},"Task Name"),React.createElement("input",{style:st.inp,value:editT.name,onChange:function(e){setEditT(function(t){return Object.assign({},t,{name:e.target.value});});}})),
+          React.createElement("div",{style:{marginBottom:12,display:"flex",gap:10}},
+            React.createElement("div",{style:{flex:1}},React.createElement("label",{style:st.lbl},"Start"),React.createElement("input",{type:"date",style:st.inp,value:editT.start,onChange:function(e){setEditT(function(t){return Object.assign({},t,{start:e.target.value});});}})),
+            React.createElement("div",{style:{flex:1}},React.createElement("label",{style:st.lbl},"End"),React.createElement("input",{type:"date",style:st.inp,value:editT.end,onChange:function(e){setEditT(function(t){return Object.assign({},t,{end:e.target.value});});}}))
+          ),
+          React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:st.lbl},"Status"),
+            React.createElement("select",{style:st.sel,value:editT.status,onChange:function(e){setEditT(function(t){return Object.assign({},t,{status:e.target.value});});}},
+              TS.map(function(s){return React.createElement("option",{key:s,value:s},TL[s]);}))),
+          React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}},
+            React.createElement("button",{style:st.btnSm,onClick:function(){setEditT(null);}},"Cancel"),
+            React.createElement("button",{style:st.btn,onClick:saveEdit},"Save Changes")
+          )
+        )
+      ),
 
-      {addTOpen&&(
-        <div style={st.modal} onClick={function(){setAddTOpen(false);}}>
-          <div style={st.mbox} onClick={function(e){e.stopPropagation();}}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Add Task</div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
-              <input style={st.inp} value={nt.name} onChange={function(e){setNt(function(t){return Object.assign({},t,{name:e.target.value});});}} placeholder="e.g. Write copy"/></div>
-            <div style={{marginBottom:12,display:"flex",gap:10}}>
-              <div style={{flex:1}}><label style={st.lbl}>Start</label>
-                <input type="date" style={st.inp} value={nt.start} onChange={function(e){setNt(function(t){return Object.assign({},t,{start:e.target.value});});}}/></div>
-              <div style={{flex:1}}><label style={st.lbl}>End</label>
-                <input type="date" style={st.inp} value={nt.end} onChange={function(e){setNt(function(t){return Object.assign({},t,{end:e.target.value});});}}/></div>
-            </div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Status</label>
-              <select style={st.sel} value={nt.status} onChange={function(e){setNt(function(t){return Object.assign({},t,{status:e.target.value});});}}>
-                {TS.map(function(s){return<option key={s} value={s}>{TL[s]}</option>;})}
-              </select></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
-              <button style={st.btnSm} onClick={function(){setAddTOpen(false);}}>Cancel</button>
-              <button style={st.btn} onClick={addTask}>Add Task</button>
-            </div>
-          </div>
-        </div>
-      )}
+      // IMPORT MODAL
+      impOpen&&React.createElement("div",{style:st.modal,onClick:function(){setImpOpen(false);setImpPrev(null);setImpErr("");}},
+        React.createElement("div",{style:Object.assign({},st.mbox,{width:500,maxHeight:"80vh",overflowY:"auto"}),onClick:function(e){e.stopPropagation();}},
+          React.createElement("div",{style:{fontWeight:600,fontSize:16,color:"#fff",marginBottom:6}},"Import from Trello"),
+          React.createElement("div",{style:{fontSize:12,color:"#666",marginBottom:18,lineHeight:1.6}},"In Trello: open your board, click Show Menu, More, Print and Export, Export as JSON. Then select the file below."),
+          !impPrev?React.createElement("div",null,
+            React.createElement("label",{style:{display:"block",background:"#111318",border:"2px dashed #333",borderRadius:10,padding:"24px",textAlign:"center",cursor:"pointer"}},
+              React.createElement("input",{type:"file",accept:".json",style:{display:"none"},onChange:handleTrello}),
+              React.createElement("div",{style:{fontSize:28,marginBottom:8}},"📂"),
+              React.createElement("div",{style:{fontSize:13,color:"#888"}},"Click to select your Trello JSON file")
+            ),
+            impErr&&React.createElement("div",{style:{fontSize:12,color:"#E24B4A",marginTop:10}},impErr),
+            React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",marginTop:16}},
+              React.createElement("button",{style:st.btnSm,onClick:function(){setImpOpen(false);setImpErr("");}},("Cancel")))
+          ):React.createElement("div",null,
+            React.createElement("div",{style:{fontSize:12,color:"#1D9E75",marginBottom:12,fontWeight:500}},"Found "+impPrev.length+" projects with "+impPrev.reduce(function(a,p){return a+p.tasks.length;},0)+" tasks"),
+            React.createElement("div",{style:{maxHeight:260,overflowY:"auto",marginBottom:16}},
+              impPrev.map(function(p){return React.createElement("div",{key:p.id,style:{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#111318",borderRadius:8,marginBottom:6,border:"1px solid #222"}},
+                React.createElement("span",{style:{width:8,height:8,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}),
+                React.createElement("span",{style:{flex:1,fontSize:13,color:"#e0e0e0",fontWeight:500}},p.name),
+                React.createElement("span",{style:{fontSize:11,color:"#666"}},p.tasks.length+" tasks")
+              );})
+            ),
+            React.createElement("div",{style:{fontSize:12,color:"#888",marginBottom:14}},"How would you like to import?"),
+            React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}},
+              React.createElement("button",{style:st.btnSm,onClick:function(){setImpPrev(null);}},"Back"),
+              React.createElement("button",{style:Object.assign({},st.btn,{background:"#378ADD"}),onClick:function(){doImport("merge");}},"Merge with existing"),
+              React.createElement("button",{style:Object.assign({},st.btn,{background:"#E24B4A"}),onClick:function(){doImport("replace");}},"Replace all")
+            )
+          )
+        )
+      ),
 
-      {editT&&(
-        <div style={st.modal} onClick={function(){setEditT(null);}}>
-          <div style={st.mbox} onClick={function(e){e.stopPropagation();}}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Edit Task</div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
-              <input style={st.inp} value={editT.name} onChange={function(e){setEditT(function(t){return Object.assign({},t,{name:e.target.value});});}}/></div>
-            <div style={{marginBottom:12,display:"flex",gap:10}}>
-              <div style={{flex:1}}><label style={st.lbl}>Start</label>
-                <input type="date" style={st.inp} value={editT.start} onChange={function(e){setEditT(function(t){return Object.assign({},t,{start:e.target.value});});}}/></div>
-              <div style={{flex:1}}><label style={st.lbl}>End</label>
-                <input type="date" style={st.inp} value={editT.end} onChange={function(e){setEditT(function(t){return Object.assign({},t,{end:e.target.value});});}}/></div>
-            </div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Status</label>
-              <select style={st.sel} value={editT.status} onChange={function(e){setEditT(function(t){return Object.assign({},t,{status:e.target.value});});}}>
-                {TS.map(function(s){return<option key={s} value={s}>{TL[s]}</option>;})}
-              </select></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
-              <button style={st.btnSm} onClick={function(){setEditT(null);}}>Cancel</button>
-              <button style={st.btn} onClick={saveEdit}>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {impOpen&&(
-        <div style={st.modal} onClick={function(){setImpOpen(false);setImpPrev(null);setImpErr("");}}>
-          <div style={Object.assign({},st.mbox,{width:500,maxHeight:"80vh",overflowY:"auto"})} onClick={function(e){e.stopPropagation();}}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:6}}>Import from Trello</div>
-            <div style={{fontSize:12,color:"#666",marginBottom:18,lineHeight:1.6}}>In Trello: open your board, click Show Menu, More, Print and Export, Export as JSON. Then select the file below.</div>
-            {!impPrev?(
-              <div>
-                <label style={{display:"block",background:"#111318",border:"2px dashed #333",borderRadius:10,padding:"24px",textAlign:"center",cursor:"pointer"}}>
-                  <input type="file" accept=".json" style={{display:"none"}} onChange={handleTrello}/>
-                  <div style={{fontSize:28,marginBottom:8}}>📂</div>
-                  <div style={{fontSize:13,color:"#888"}}>Click to select your Trello JSON file</div>
-                </label>
-                {impErr&&<div style={{fontSize:12,color:"#E24B4A",marginTop:10}}>{impErr}</div>}
-                <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
-                  <button style={st.btnSm} onClick={function(){setImpOpen(false);setImpErr("");}}>Cancel</button>
-                </div>
-              </div>
-            ):(
-              <div>
-                <div style={{fontSize:12,color:"#1D9E75",marginBottom:12,fontWeight:500}}>Found {impPrev.length} projects with {impPrev.reduce(function(a,p){return a+p.tasks.length;},0)} tasks</div>
-                <div style={{maxHeight:260,overflowY:"auto",marginBottom:16}}>
-                  {impPrev.map(function(p){return(
-                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#111318",borderRadius:8,marginBottom:6,border:"1px solid #222"}}>
-                      <span style={{width:8,height:8,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}/>
-                      <span style={{flex:1,fontSize:13,color:"#e0e0e0",fontWeight:500}}>{p.name}</span>
-                      <span style={{fontSize:11,color:"#666"}}>{p.tasks.length} tasks</span>
-                    </div>
-                  );})}
-                </div>
-                <div style={{fontSize:12,color:"#888",marginBottom:14}}>How would you like to import?</div>
-                <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
-                  <button style={st.btnSm} onClick={function(){setImpPrev(null);}}>Back</button>
-                  <button style={Object.assign({},st.btn,{background:"#378ADD"})} onClick={function(){doImport("merge");}}>Merge with existing</button>
-                  <button style={Object.assign({},st.btn,{background:"#E24B4A"})} onClick={function(){doImport("replace");}}>Replace all</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {delConf&&(
-        <div style={st.modal} onClick={function(){setDelConf(null);}}>
-          <div style={Object.assign({},st.mbox,{width:320})} onClick={function(e){e.stopPropagation();}}>
-            <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:10}}>Delete Project?</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:20}}>This will permanently remove the project and all its tasks.</div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button style={st.btnSm} onClick={function(){setDelConf(null);}}>Cancel</button>
-              <button style={Object.assign({},st.btn,{background:"#E24B4A"})} onClick={function(){delProject(delConf);}}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      // DELETE MODAL
+      delConf&&React.createElement("div",{style:st.modal,onClick:function(){setDelConf(null);}},
+        React.createElement("div",{style:Object.assign({},st.mbox,{width:320}),onClick:function(e){e.stopPropagation();}},
+          React.createElement("div",{style:{fontWeight:600,fontSize:15,color:"#fff",marginBottom:10}},"Delete Project?"),
+          React.createElement("div",{style:{fontSize:13,color:"#888",marginBottom:20}},"This will permanently remove the project and all its tasks."),
+          React.createElement("div",{style:{display:"flex",gap:8,justifyContent:"flex-end"}},
+            React.createElement("button",{style:st.btnSm,onClick:function(){setDelConf(null);}},"Cancel"),
+            React.createElement("button",{style:Object.assign({},st.btn,{background:"#E24B4A"}),onClick:function(){delProject(delConf);}},"Delete")
+          )
+        )
+      )
+    )
   );
 }
 
