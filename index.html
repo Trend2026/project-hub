@@ -456,7 +456,7 @@ function App(){
                             }} style={{cursor:"pointer",accentColor:"#1D9E75"}}/>
                             <input value={s.name} onChange={function(e){
                               updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
-                            }} style={{flex:1,background:"transparent",border:"none",color:s.done?"#555":"#bbb",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none"}}/>
+                            }} style={{flex:1,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none"}}/>
                             <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
                               onClick={function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}}>x</button>
                           </div>
