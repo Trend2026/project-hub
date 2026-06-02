@@ -392,7 +392,7 @@ function App(){
                       background:isOpen?"rgba(212,83,126,0.07)":"#111318"
                     })} onClick={function(){setActiveTask(isOpen?null:t.id);}}>
                       <span style={{color:"#444",fontSize:14,cursor:"grab"}} onClick={function(e){e.stopPropagation();}}>⠿</span>
-                      <span style={{width:8,height:8,borderRadius:"50%",background:TC[t.status],display:"inline-block",flexShrink:0}}/>
+
                       <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
                         {t.name}
                         {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.7)":"#555"}}>{subDone}/{subs.length}</span>}
@@ -507,16 +507,7 @@ function App(){
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Add Task</div>
             <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
               <input style={st.inp} value={nt.name} onChange={function(e){setNt(function(t){return Object.assign({},t,{name:e.target.value});});}} placeholder="e.g. Write copy"/></div>
-            <div style={{marginBottom:12,display:"flex",gap:10}}>
-              <div style={{flex:1}}><label style={st.lbl}>Start</label>
-                <input type="date" style={st.inp} value={nt.start} onChange={function(e){setNt(function(t){return Object.assign({},t,{start:e.target.value});});}}/></div>
-              <div style={{flex:1}}><label style={st.lbl}>End</label>
-                <input type="date" style={st.inp} value={nt.end} onChange={function(e){setNt(function(t){return Object.assign({},t,{end:e.target.value});});}}/></div>
-            </div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Status</label>
-              <select style={st.sel} value={nt.status} onChange={function(e){setNt(function(t){return Object.assign({},t,{status:e.target.value});});}}>
-                {TS.map(function(s){return <option key={s} value={s}>{TL[s]}</option>;})}
-              </select></div>
+
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
               <button style={st.btnSm} onClick={function(){setAddTOpen(false);}}>Cancel</button>
               <button style={st.btn} onClick={addTask}>Add Task</button>
@@ -532,16 +523,7 @@ function App(){
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Edit Task</div>
             <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
               <input style={st.inp} value={editT.name} onChange={function(e){setEditT(function(t){return Object.assign({},t,{name:e.target.value});});}}/></div>
-            <div style={{marginBottom:12,display:"flex",gap:10}}>
-              <div style={{flex:1}}><label style={st.lbl}>Start</label>
-                <input type="date" style={st.inp} value={editT.start} onChange={function(e){setEditT(function(t){return Object.assign({},t,{start:e.target.value});});}}/></div>
-              <div style={{flex:1}}><label style={st.lbl}>End</label>
-                <input type="date" style={st.inp} value={editT.end} onChange={function(e){setEditT(function(t){return Object.assign({},t,{end:e.target.value});});}}/></div>
-            </div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Status</label>
-              <select style={st.sel} value={editT.status} onChange={function(e){setEditT(function(t){return Object.assign({},t,{status:e.target.value});});}}>
-                {TS.map(function(s){return <option key={s} value={s}>{TL[s]}</option>;})}
-              </select></div>
+
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
               <button style={st.btnSm} onClick={function(){setEditT(null);}}>Cancel</button>
               <button style={st.btn} onClick={saveEdit}>Save Changes</button>
