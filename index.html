@@ -55,7 +55,9 @@ var SC={
   complete:{label:"Complete",bg:"#639922",text:"#EAF3DE"},
   review:{label:"Review",bg:"#7F77DD",text:"#EEEDFE"}
 };
-var TS=["todo","inprogress","done"];
+var SS=["development","pending"];
+var SL={development:"Development",pending:"Pending"};
+var SC2={development:"#fff5f6",pending:"#F6B53C"};
 var TL={todo:"To Do",inprogress:"In Progress",done:"Done"};
 var TC={todo:"#888780",inprogress:"#378ADD",done:"#639922"};
 var PC=["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56"];
@@ -437,6 +439,11 @@ function App(){
                       React.createElement("input",{value:s.name,onChange:function(e){
                         updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
                       },style:{flex:1,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none"}}),
+                      React.createElement("select",{value:s.status||"pending",
+                        onChange:function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});},
+                        style:{background:"#111318",border:"1px solid #333",borderRadius:6,padding:"2px 6px",fontSize:11,fontWeight:700,color:SC2[s.status||"pending"],cursor:"pointer",outline:"none"}},
+                        SS.map(function(sv){return React.createElement("option",{key:sv,value:sv,style:{color:SC2[sv],fontWeight:700}},SL[sv]);})
+                      ),
                       React.createElement("button",{style:{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12},
                         onClick:function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}},("x"))
                     );
@@ -445,10 +452,7 @@ function App(){
               );
             })
           ),
-          React.createElement("div",{style:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:12,padding:"16px 18px"}},
-            React.createElement("div",{style:st.sec},"Gantt Chart"),
-            React.createElement(Gantt,{tasks:proj.tasks})
-          )
+
         ),
 
         // SIDEBAR
