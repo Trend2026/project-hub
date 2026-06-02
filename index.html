@@ -397,14 +397,7 @@ function App(){
                         {t.name}
                         {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.7)":"#555"}}>{subDone}/{subs.length}</span>}
                       </span>
-                      <span style={{fontSize:11,color:"#555"}}>{t.start} to {t.end}</span>
-                      {isOD&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600}}>OVERDUE</span>}
-                      <select value={t.status}
-                        onChange={function(e){e.stopPropagation();updTask(t.id,{status:e.target.value});}}
-                        onClick={function(e){e.stopPropagation();}}
-                        style={Object.assign({},st.sel,{width:"auto",fontSize:11,padding:"3px 6px",color:TC[t.status]})}>
-                        {TS.map(function(s){return <option key={s} value={s}>{TL[s]}</option>;})}
-                      </select>
+
                       <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
                         onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending"}])});setActiveTask(t.id);}}>+Sub</button>
                       <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
