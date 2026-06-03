@@ -1,28 +1,4 @@
-var dragItem=useRef(null);
-  var dragOver=useRef(null);
-  var dragSubItem=useRef(null);
-  var dragSubOver=useRef(null);
-  var dragSubParent=useRef(null);
-
-  function onSDragStart(e,tid,idx){e.stopPropagation();dragSubItem.current=idx;dragSubParent.current=tid;e.dataTransfer.effectAllowed="move";}
-  function onSDragEnter(e,idx){e.stopPropagation();dragSubOver.current=idx;e.currentTarget.classList.add("drag-over");}
-  function onSDragLeave(e){e.stopPropagation();e.currentTarget.classList.remove("drag-over");}
-  function onSDragOver(e){e.stopPropagation();e.preventDefault();}
-  function onSDrop(e,tid){
-    e.stopPropagation();e.currentTarget.classList.remove("drag-over");
-    var from=dragSubItem.current;var to=dragSubOver.current;
-    if(from===null||to===null||from===to){dragSubItem.current=null;dragSubOver.current=null;return;}
-    var u=projects.map(function(p){
-      if(p.id!==aid)return p;
-      return Object.assign({},p,{tasks:p.tasks.map(function(t){
-        if(t.id!==tid)return t;
-        var subs=t.subtasks.slice();var item=subs.splice(from,1)[0];subs.splice(to,0,item);
-        return Object.assign({},t,{subtasks:subs});
-      })});
-    });
-    dragSubItem.current=null;dragSubOver.current=null;
-    setProjects(u);persist(u);
-  }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -72,7 +48,6 @@ function dbSaveAll(projects){
     });
 }
 
-// Project statuses
 var PSC={
   active:{label:"Active",bg:"#1D9E75",text:"#E1F5EE"},
   inprogress:{label:"In Progress",bg:"#378ADD",text:"#E6F1FB"},
@@ -80,17 +55,9 @@ var PSC={
   complete:{label:"Complete",bg:"#639922",text:"#EAF3DE"},
   review:{label:"Review",bg:"#7F77DD",text:"#EEEDFE"}
 };
-
-// Task statuses
-var TS=["todo","inprogress","done"];
-var TL={todo:"To Do",inprogress:"In Progress",done:"Done"};
-var TC={todo:"#888780",inprogress:"#378ADD",done:"#639922"};
-
-// Subtask statuses
 var SS=["development","pending"];
 var SL={development:"Development",pending:"Pending"};
 var SC={development:"#fe203d",pending:"#F6B53C"};
-
 var PC=["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56"];
 
 function uid(){return Math.random().toString(36).slice(2,9);}
@@ -123,24 +90,26 @@ function App(){
   var useRef=React.useRef;
   var useCallback=React.useCallback;
 
-  var ps=useState([]);var projects=ps[0];var setProjects=ps[1];
-  var ls=useState(true);var loading=ls[0];var setLoading=ls[1];
-  var ss=useState("idle");var sync=ss[0];var setSync=ss[1];
-  var vs=useState("home");var view=vs[0];var setView=vs[1];
-  var as=useState(null);var aid=as[0];var setAid=as[1];
-  var aps=useState(false);var addPOpen=aps[0];var setAddPOpen=aps[1];
-  var nps=useState({name:"",description:"",color:PC[0],status:"active"});var np=nps[0];var setNp=nps[1];
-  var ats=useState(false);var addTOpen=ats[0];var setAddTOpen=ats[1];
-  var nts=useState({name:"",status:"todo",start:tod(),end:addD(tod(),7)});var nt=nts[0];var setNt=nts[1];
-  var ets=useState(null);var editT=ets[0];var setEditT=ets[1];
-  var ds=useState(null);var delConf=ds[0];var setDelConf=ds[1];
-  var ios=useState(false);var impOpen=ios[0];var setImpOpen=ios[1];
-  var ips=useState(null);var impPrev=ips[0];var setImpPrev=ips[1];
-  var ies=useState("");var impErr=ies[0];var setImpErr=ies[1];
-  var aks=useState(null);var activeTask=aks[0];var setActiveTask=aks[1];
+  var r1=useState([]);var projects=r1[0];var setProjects=r1[1];
+  var r2=useState(true);var loading=r2[0];var setLoading=r2[1];
+  var r3=useState("idle");var sync=r3[0];var setSync=r3[1];
+  var r4=useState("home");var view=r4[0];var setView=r4[1];
+  var r5=useState(null);var aid=r5[0];var setAid=r5[1];
+  var r6=useState(false);var addPOpen=r6[0];var setAddPOpen=r6[1];
+  var r7=useState({name:"",description:"",color:PC[0],status:"active"});var np=r7[0];var setNp=r7[1];
+  var r8=useState(false);var addTOpen=r8[0];var setAddTOpen=r8[1];
+  var r9=useState({name:""});var nt=r9[0];var setNt=r9[1];
+  var r10=useState(null);var editT=r10[0];var setEditT=r10[1];
+  var r11=useState(null);var delConf=r11[0];var setDelConf=r11[1];
+  var r12=useState(false);var impOpen=r12[0];var setImpOpen=r12[1];
+  var r13=useState(null);var impPrev=r13[0];var setImpPrev=r13[1];
+  var r14=useState("");var impErr=r14[0];var setImpErr=r14[1];
+  var r15=useState(null);var activeTask=r15[0];var setActiveTask=r15[1];
+
+  var dragItem=useRef(null);
+  var dragOver=useRef(null);
   var dragSubItem=useRef(null);
   var dragSubOver=useRef(null);
-  var dragSubTask=useRef(null);
 
   useEffect(function(){
     dbLoad().then(function(data){
@@ -158,40 +127,64 @@ function App(){
   },[]);
 
   var proj=projects.find(function(p){return p.id===aid;});
-  var overdue=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.status!=="done"&&t.end<tod();}).length;
-  var thisWeek=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.status!=="done"&&t.end>=tod()&&t.end<=addD(tod(),7);}).length;
+  var overdue=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.end&&t.end<tod();}).length;
+  var thisWeek=projects.flatMap(function(p){return p.tasks;}).filter(function(t){return t.end&&t.end>=tod()&&t.end<=addD(tod(),7);}).length;
   var totalT=projects.flatMap(function(p){return p.tasks;}).length;
 
   function openP(id){setAid(id);setView("detail");setActiveTask(null);}
   function goHome(){setView("home");setAid(null);setAddTOpen(false);setEditT(null);setActiveTask(null);}
 
-  function onPDragStart(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";}
-  function onPDragEnter(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");}
-  function onPDragLeave(e){e.currentTarget.classList.remove("drag-over");}
-  function onPDragOver(e){e.preventDefault();}
+  // Project drag
+  function onPDS(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";}
+  function onPDE(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");}
+  function onPDL(e){e.currentTarget.classList.remove("drag-over");}
+  function onPDO(e){e.preventDefault();}
   function onPDrop(e){
     e.currentTarget.classList.remove("drag-over");
-    var from=dragItem.current;var to=dragOver.current;
-    if(from===null||to===null||from===to){dragItem.current=null;dragOver.current=null;return;}
-    var u=projects.slice();var item=u.splice(from,1)[0];u.splice(to,0,item);
+    var f=dragItem.current;var t=dragOver.current;
+    if(f===null||t===null||f===t){dragItem.current=null;dragOver.current=null;return;}
+    var u=projects.slice();var item=u.splice(f,1)[0];u.splice(t,0,item);
     dragItem.current=null;dragOver.current=null;
     setProjects(u);persist(u);
   }
 
-  function onTDragStart(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";}
-  function onTDragEnter(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");}
-  function onTDragLeave(e){e.currentTarget.classList.remove("drag-over");}
-  function onTDragOver(e){e.preventDefault();}
+  // Task drag
+  function onTDS(e,idx){dragItem.current=idx;e.dataTransfer.effectAllowed="move";}
+  function onTDE(e,idx){dragOver.current=idx;e.currentTarget.classList.add("drag-over");}
+  function onTDL(e){e.currentTarget.classList.remove("drag-over");}
+  function onTDO(e){e.preventDefault();}
   function onTDrop(e){
     e.currentTarget.classList.remove("drag-over");
-    var from=dragItem.current;var to=dragOver.current;
-    if(from===null||to===null||from===to){dragItem.current=null;dragOver.current=null;return;}
+    var f=dragItem.current;var t=dragOver.current;
+    if(f===null||t===null||f===t){dragItem.current=null;dragOver.current=null;return;}
     var u=projects.map(function(p){
       if(p.id!==aid)return p;
-      var tasks=p.tasks.slice();var item=tasks.splice(from,1)[0];tasks.splice(to,0,item);
+      var tasks=p.tasks.slice();var item=tasks.splice(f,1)[0];tasks.splice(t,0,item);
       return Object.assign({},p,{tasks:tasks});
     });
     dragItem.current=null;dragOver.current=null;
+    setProjects(u);persist(u);
+  }
+
+  // Subtask drag
+  function onSDS(e,idx){e.stopPropagation();dragSubItem.current=idx;e.dataTransfer.effectAllowed="move";}
+  function onSDE(e,idx){e.stopPropagation();dragSubOver.current=idx;e.currentTarget.classList.add("drag-over");}
+  function onSDL(e){e.stopPropagation();e.currentTarget.classList.remove("drag-over");}
+  function onSDO(e){e.stopPropagation();e.preventDefault();}
+  function onSDrop(e,tid){
+    e.stopPropagation();
+    e.currentTarget.classList.remove("drag-over");
+    var f=dragSubItem.current;var t=dragSubOver.current;
+    if(f===null||t===null||f===t){dragSubItem.current=null;dragSubOver.current=null;return;}
+    var u=projects.map(function(p){
+      if(p.id!==aid)return p;
+      return Object.assign({},p,{tasks:p.tasks.map(function(tk){
+        if(tk.id!==tid)return tk;
+        var subs=tk.subtasks.slice();var item=subs.splice(f,1)[0];subs.splice(t,0,item);
+        return Object.assign({},tk,{subtasks:subs});
+      })});
+    });
+    dragSubItem.current=null;dragSubOver.current=null;
     setProjects(u);persist(u);
   }
 
@@ -217,7 +210,7 @@ function App(){
     if(!nt.name.trim())return;
     var t=Object.assign({},nt,{id:uid(),subtasks:[]});
     var u=projects.map(function(p){return p.id===aid?Object.assign({},p,{tasks:p.tasks.concat([t])}):p;});
-    setProjects(u);setNt({name:"",status:"todo",start:tod(),end:addD(tod(),7)});setAddTOpen(false);
+    setProjects(u);setNt({name:""});setAddTOpen(false);
     persist(u);
   }
 
@@ -246,10 +239,7 @@ function App(){
         return p.tasks.map(function(t,i){
           return{id:t.id,name:t.name,
             desc:t.subtasks&&t.subtasks.length?t.subtasks.map(function(s){return(s.done?"✅ ":"⬜ ")+s.name;}).join("\n"):"",
-            idList:p.id,closed:false,due:t.end?t.end+"T00:00:00.000Z":null,
-            dueComplete:t.status==="done",pos:(i+1)*65536,labels:[],
-            checklists:t.subtasks&&t.subtasks.length?[{id:uid(),name:"Subtasks",checkItems:t.subtasks.map(function(s){return{id:s.id,name:s.name,state:s.done?"complete":"incomplete"};})}]:[]
-          };
+            idList:p.id,closed:false,due:null,dueComplete:false,pos:(i+1)*65536,labels:[],checklists:[]};
         });
       }),
       labels:[],members:[],exportedAt:new Date().toISOString()
@@ -269,8 +259,7 @@ function App(){
       setImpPrev(lists.map(function(l,i){
         return{id:uid(),name:l.name,description:"",color:PC[i%PC.length],status:"active",
           tasks:cards.filter(function(c){return c.idList===l.id;}).map(function(c){
-            return{id:uid(),name:c.name,status:c.dueComplete?"done":"todo",
-              start:c.due?c.due.slice(0,10):tod(),end:c.due?c.due.slice(0,10):addD(tod(),7),subtasks:[]};
+            return{id:uid(),name:c.name,subtasks:[]};
           })};
       }));
     }).catch(function(){setImpErr("Invalid Trello JSON file.");});
@@ -283,7 +272,7 @@ function App(){
     setImpOpen(false);setImpPrev(null);setImpErr("");
   }
 
-  function nextT(p){return p.tasks.find(function(t){return t.status!=="done";})||p.tasks[0];}
+  function nextT(p){return p.tasks[0];}
 
   var st={
     topBar:{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"},
@@ -297,7 +286,7 @@ function App(){
     mbox:{background:"#1a1d27",border:"1px solid #2d3045",borderRadius:16,padding:"24px",width:400,maxWidth:"95vw"},
     lbl:{fontSize:12,color:"#888",marginBottom:4,display:"block"},
     sec:{fontSize:13,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12},
-    trow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,marginBottom:0,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
+    trow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
   };
 
   if(loading)return(
@@ -325,7 +314,7 @@ function App(){
               {Object.keys(PSC).map(function(k){return <option key={k} value={k}>{PSC[k].label}</option>;})}
             </select>
           )}
-          {sync!=="idle"&&<span style={{fontSize:11,color:sync==="saving"?"#BA7517":sync==="saved"?"#1D9E75":"#E24B4A",marginLeft:12}}>
+          {sync!=="idle"&&<span style={{fontSize:11,marginLeft:12,color:sync==="saving"?"#BA7517":sync==="saved"?"#1D9E75":"#E24B4A"}}>
             {sync==="saving"?"⏳ Saving...":sync==="saved"?"✅ Saved":"❌ Sync error"}
           </span>}
         </div>
@@ -355,20 +344,19 @@ function App(){
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16,padding:"20px 24px 0"}}>
             {projects.map(function(p,idx){
               var nt2=nextT(p);
-              var isOD=p.tasks.some(function(t){return t.status!=="done"&&t.end<tod();});
               return(
                 <div key={p.id} draggable={true}
-                  onDragStart={function(e){onPDragStart(e,idx);}}
-                  onDragEnter={function(e){onPDragEnter(e,idx);}}
-                  onDragLeave={onPDragLeave} onDragOver={onPDragOver} onDrop={onPDrop}
-                  style={Object.assign({},st.card,{borderColor:isOD?"#E24B4A44":"#2a2d3a"})}
+                  onDragStart={function(e){onPDS(e,idx);}}
+                  onDragEnter={function(e){onPDE(e,idx);}}
+                  onDragLeave={onPDL} onDragOver={onPDO} onDrop={onPDrop}
+                  style={st.card}
                   onClick={function(){openP(p.id);}}
                   onMouseEnter={function(e){e.currentTarget.style.borderColor=p.color;e.currentTarget.style.transform="translateY(-2px)";}}
-                  onMouseLeave={function(e){e.currentTarget.style.borderColor=isOD?"#E24B4A44":"#2a2d3a";e.currentTarget.style.transform="";}}
+                  onMouseLeave={function(e){e.currentTarget.style.borderColor="#2a2d3a";e.currentTarget.style.transform="";}}
                 >
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-                      <span style={{color:"#444",fontSize:12,cursor:"grab",marginRight:2}}>⠿</span>
+                      <span style={{color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
                       <span style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}/>
                       <span style={{fontWeight:600,fontSize:15,color:"#fff"}}>{p.name}</span>
                     </div>
@@ -382,7 +370,6 @@ function App(){
                   {nt2&&(
                     <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#bbb",borderLeft:"3px solid "+p.color}}>
                       <span style={{color:"#666",fontSize:11}}>NEXT: </span>{nt2.name}
-                      <span style={{marginLeft:6,fontSize:10,color:TC[nt2.status]}}>{TL[nt2.status]}</span>
                     </div>
                   )}
                   <PBar tasks={p.tasks} color={p.color}/>
@@ -401,66 +388,74 @@ function App(){
               <div style={st.sec}>Tasks</div>
               {proj.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
               {proj.tasks.map(function(t,idx){
-                var isOD=t.status!=="done"&&t.end<tod();
                 var subs=t.subtasks||[];
                 var subDone=subs.filter(function(s){return s.done;}).length;
                 var isOpen=activeTask===t.id;
                 return(
                   <div key={t.id} draggable={true}
-                    onDragStart={function(e){onTDragStart(e,idx);}}
-                    onDragEnter={function(e){onTDragEnter(e,idx);}}
-                    onDragLeave={onTDragLeave} onDragOver={onTDragOver} onDrop={onTDrop}
+                    onDragStart={function(e){onTDS(e,idx);}}
+                    onDragEnter={function(e){onTDE(e,idx);}}
+                    onDragLeave={onTDL} onDragOver={onTDO} onDrop={onTDrop}
                     style={{marginBottom:6}}
                   >
+                    {/* TASK ROW */}
                     <div style={Object.assign({},st.trow,{
-                      borderColor:isOpen?"#D4537E55":isOD?"#E24B4A44":"#222",
+                      borderColor:isOpen?"#D4537E55":"#222",
                       background:isOpen?"rgba(212,83,126,0.07)":"#111318"
                     })} onClick={function(){setActiveTask(isOpen?null:t.id);}}>
-                      <span style={{color:"#444",fontSize:14,cursor:"grab"}} onClick={function(e){e.stopPropagation();}}>⠿</span>
-
+                      <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}} onClick={function(e){e.stopPropagation();}}>⠿</span>
                       <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
                         {t.name}
-                        {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.7)":"#555"}}>{subDone}/{subs.length}</span>}
+                        {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
                       </span>
-
-                      <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px"}}
+                      <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px",flexShrink:0}}
                         onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending"}])});setActiveTask(t.id);}}>+Sub</button>
-                      <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px"}}
+                      <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px",flexShrink:0}}
                         onClick={function(e){e.stopPropagation();setEditT(Object.assign({},t));}}>Edit</button>
-                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px"}}
+                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px",flexShrink:0}}
                         onClick={function(e){e.stopPropagation();delTask(t.id);}}>x</button>
-                      <span style={{color:isOpen?"#D4537E":"#444",fontSize:10,marginLeft:2}}>{isOpen?"▲":"▼"}</span>
+                      <span style={{color:isOpen?"#D4537E":"#444",fontSize:10,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
                     </div>
+
+                    {/* SUBTASKS */}
                     {isOpen&&(
-                      <div style={{marginLeft:24,marginTop:4,marginBottom:4}}>
+                      <div style={{marginLeft:24,marginTop:4}}>
                         {subs.length===0&&<div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
                         {subs.map(function(s,sidx){
                           return(
-                            <div key={s.id}
-                              draggable={true}
-                              onDragStart={function(e){onSDragStart(e,t.id,sidx);}}
-                              onDragEnter={function(e){onSDragEnter(e,sidx);}}
-                              onDragLeave={onSDragLeave}
-                              onDragOver={onSDragOver}
+                            <div key={s.id} draggable={true}
+                              onDragStart={function(e){onSDS(e,sidx);}}
+                              onDragEnter={function(e){onSDE(e,sidx);}}
+                              onDragLeave={onSDL}
+                              onDragOver={onSDO}
                               onDrop={function(e){onSDrop(e,t.id);}}
                               style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}
                             >
-                              <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px"}}>
-                                <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0}}>⠿</span>
-                                <input type="checkbox" checked={s.done||false} onChange={function(e){
-                                  updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});
-                                }} style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0}}/>
-                                <div style={{flex:1,minWidth:0,display:"flex",flexWrap:"wrap",alignItems:"center",gap:6}}>
-                                  <textarea value={s.name} onChange={function(e){
+                              <div style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 10px",flexWrap:"wrap"}}>
+                                <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,marginTop:2}}>⠿</span>
+                                <input type="checkbox" checked={s.done||false}
+                                  onChange={function(e){
+                                    updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});
+                                  }}
+                                  style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
+                                <textarea value={s.name}
+                                  onChange={function(e){
                                     updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
-                                  }} rows={1} style={{flex:"1 1 120px",minWidth:80,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",resize:"none",overflow:"hidden",fontFamily:"system-ui,sans-serif",lineHeight:1.4,padding:0}}
-                                  onInput={function(e){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}/>
+                                  }}
+                                  onInput={function(e){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}
+                                  rows={1}
+                                  style={{flex:"1 1 100px",minWidth:60,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",
+                                    textDecoration:s.done?"line-through":"none",resize:"none",overflow:"hidden",lineHeight:1.5,padding:0}}
+                                />
+                                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                                   <select value={s.status||"pending"}
-                                    onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});}}
-                                    style={{flexShrink:0,background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
-                                    {SS.map(function(sv){return <option key={sv} value={sv} style={{color:SC[sv],fontWeight:700}}>{SL[sv]}</option>;})}
+                                    onChange={function(e){
+                                      updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});
+                                    }}
+                                    style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
+                                    {SS.map(function(sv){return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>;})}
                                   </select>
-                                  <button style={{flexShrink:0,background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
+                                  <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
                                     onClick={function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}}>x</button>
                                 </div>
                               </div>
@@ -482,7 +477,6 @@ function App(){
               var isAct=p.id===aid;
               var pDone=p.tasks.filter(function(t){return t.status==="done";}).length;
               var pPct=p.tasks.length?Math.round(pDone/p.tasks.length*100):0;
-              var isOD=p.tasks.some(function(t){return t.status!=="done"&&t.end<tod();});
               return(
                 <div key={p.id} onClick={function(){openP(p.id);}}
                   style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
@@ -494,7 +488,6 @@ function App(){
                   <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
                     <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
                     <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-                    {isOD&&<span style={{fontSize:9,color:"#E24B4A",marginLeft:"auto",flexShrink:0}}>●</span>}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
@@ -509,7 +502,7 @@ function App(){
         </div>
       )}
 
-      {/* ADD PROJECT MODAL */}
+      {/* ADD PROJECT */}
       {addPOpen&&(
         <div style={st.modal} onClick={function(){setAddPOpen(false);}}>
           <div style={st.mbox} onClick={function(e){e.stopPropagation();}}>
@@ -539,14 +532,13 @@ function App(){
         </div>
       )}
 
-      {/* ADD TASK MODAL */}
+      {/* ADD TASK */}
       {addTOpen&&(
         <div style={st.modal} onClick={function(){setAddTOpen(false);}}>
           <div style={st.mbox} onClick={function(e){e.stopPropagation();}}>
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Add Task</div>
             <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
               <input style={st.inp} value={nt.name} onChange={function(e){setNt(function(t){return Object.assign({},t,{name:e.target.value});});}} placeholder="e.g. Write copy"/></div>
-
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
               <button style={st.btnSm} onClick={function(){setAddTOpen(false);}}>Cancel</button>
               <button style={st.btn} onClick={addTask}>Add Task</button>
@@ -555,14 +547,13 @@ function App(){
         </div>
       )}
 
-      {/* EDIT TASK MODAL */}
+      {/* EDIT TASK */}
       {editT&&(
         <div style={st.modal} onClick={function(){setEditT(null);}}>
           <div style={st.mbox} onClick={function(e){e.stopPropagation();}}>
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Edit Task</div>
             <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
               <input style={st.inp} value={editT.name} onChange={function(e){setEditT(function(t){return Object.assign({},t,{name:e.target.value});});}}/></div>
-
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
               <button style={st.btnSm} onClick={function(){setEditT(null);}}>Cancel</button>
               <button style={st.btn} onClick={saveEdit}>Save Changes</button>
@@ -571,7 +562,7 @@ function App(){
         </div>
       )}
 
-      {/* IMPORT MODAL */}
+      {/* IMPORT */}
       {impOpen&&(
         <div style={st.modal} onClick={function(){setImpOpen(false);setImpPrev(null);setImpErr("");}}>
           <div style={Object.assign({},st.mbox,{width:500,maxHeight:"80vh",overflowY:"auto"})} onClick={function(e){e.stopPropagation();}}>
@@ -613,7 +604,7 @@ function App(){
         </div>
       )}
 
-      {/* DELETE MODAL */}
+      {/* DELETE */}
       {delConf&&(
         <div style={st.modal} onClick={function(){setDelConf(null);}}>
           <div style={Object.assign({},st.mbox,{width:320})} onClick={function(e){e.stopPropagation();}}>
