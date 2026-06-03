@@ -1,4 +1,28 @@
-<!DOCTYPE html>
+var dragItem=useRef(null);
+  var dragOver=useRef(null);
+  var dragSubItem=useRef(null);
+  var dragSubOver=useRef(null);
+  var dragSubParent=useRef(null);
+
+  function onSDragStart(e,tid,idx){e.stopPropagation();dragSubItem.current=idx;dragSubParent.current=tid;e.dataTransfer.effectAllowed="move";}
+  function onSDragEnter(e,idx){e.stopPropagation();dragSubOver.current=idx;e.currentTarget.classList.add("drag-over");}
+  function onSDragLeave(e){e.stopPropagation();e.currentTarget.classList.remove("drag-over");}
+  function onSDragOver(e){e.stopPropagation();e.preventDefault();}
+  function onSDrop(e,tid){
+    e.stopPropagation();e.currentTarget.classList.remove("drag-over");
+    var from=dragSubItem.current;var to=dragSubOver.current;
+    if(from===null||to===null||from===to){dragSubItem.current=null;dragSubOver.current=null;return;}
+    var u=projects.map(function(p){
+      if(p.id!==aid)return p;
+      return Object.assign({},p,{tasks:p.tasks.map(function(t){
+        if(t.id!==tid)return t;
+        var subs=t.subtasks.slice();var item=subs.splice(from,1)[0];subs.splice(to,0,item);
+        return Object.assign({},t,{subtasks:subs});
+      })});
+    });
+    dragSubItem.current=null;dragSubOver.current=null;
+    setProjects(u);persist(u);
+  }<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -114,8 +138,9 @@ function App(){
   var ips=useState(null);var impPrev=ips[0];var setImpPrev=ips[1];
   var ies=useState("");var impErr=ies[0];var setImpErr=ies[1];
   var aks=useState(null);var activeTask=aks[0];var setActiveTask=aks[1];
-  var dragItem=useRef(null);
-  var dragOver=useRef(null);
+  var dragSubItem=useRef(null);
+  var dragSubOver=useRef(null);
+  var dragSubTask=useRef(null);
 
   useEffect(function(){
     dbLoad().then(function(data){
@@ -409,22 +434,36 @@ function App(){
                     {isOpen&&(
                       <div style={{marginLeft:24,marginTop:4,marginBottom:4}}>
                         {subs.length===0&&<div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
-                        {subs.map(function(s){
+                        {subs.map(function(s,sidx){
                           return(
-                            <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}>
-                              <input type="checkbox" checked={s.done||false} onChange={function(e){
-                                updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});
-                              }} style={{cursor:"pointer",accentColor:"#1D9E75"}}/>
-                              <input value={s.name} onChange={function(e){
-                                updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
-                              }} style={{flex:1,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none"}}/>
-                              <select value={s.status||"pending"}
-                                onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});}}
-                                style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
-                                {SS.map(function(sv){return <option key={sv} value={sv} style={{color:SC[sv],fontWeight:700}}>{SL[sv]}</option>;})}
-                              </select>
-                              <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
-                                onClick={function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}}>x</button>
+                            <div key={s.id}
+                              draggable={true}
+                              onDragStart={function(e){onSDragStart(e,t.id,sidx);}}
+                              onDragEnter={function(e){onSDragEnter(e,sidx);}}
+                              onDragLeave={onSDragLeave}
+                              onDragOver={onSDragOver}
+                              onDrop={function(e){onSDrop(e,t.id);}}
+                              style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a"}}
+                            >
+                              <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px"}}>
+                                <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0}}>⠿</span>
+                                <input type="checkbox" checked={s.done||false} onChange={function(e){
+                                  updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});
+                                }} style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0}}/>
+                                <div style={{flex:1,minWidth:0,display:"flex",flexWrap:"wrap",alignItems:"center",gap:6}}>
+                                  <textarea value={s.name} onChange={function(e){
+                                    updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
+                                  }} rows={1} style={{flex:"1 1 120px",minWidth:80,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",resize:"none",overflow:"hidden",fontFamily:"system-ui,sans-serif",lineHeight:1.4,padding:0}}
+                                  onInput={function(e){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}/>
+                                  <select value={s.status||"pending"}
+                                    onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});}}
+                                    style={{flexShrink:0,background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
+                                    {SS.map(function(sv){return <option key={sv} value={sv} style={{color:SC[sv],fontWeight:700}}>{SL[sv]}</option>;})}
+                                  </select>
+                                  <button style={{flexShrink:0,background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
+                                    onClick={function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}}>x</button>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
