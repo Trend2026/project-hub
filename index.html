@@ -444,7 +444,7 @@ function App(){
                                   }}
                                   onInput={function(e){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}
                                   rows={1}
-                                  style={{flex:"1 1 100px",minWidth:60,background:"transparent",border:"none",color:s.done?"#555":"#E8832A",fontSize:12,outline:"none",
+                                  style={{flex:"1 1 100px",minWidth:60,background:"transparent",border:"none",color:s.done?"#555":s.status==="development"?"#fe203d":"#E8832A",fontSize:12,outline:"none",
                                     textDecoration:s.done?"line-through":"none",resize:"none",overflow:"hidden",lineHeight:1.5,padding:0}}
                                 />
                                 <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
