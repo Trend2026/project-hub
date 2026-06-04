@@ -433,7 +433,6 @@ function App() {
                             onDrop={function(e){ sdDrop(e,t.id); }}
                             style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a",padding:"6px 10px"}}
                           >
-                            {/* Top row: handle + checkbox + textarea */}
                             <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
                               <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
                               <input type="checkbox" checked={s.done||false}
@@ -446,20 +445,19 @@ function App() {
                                   updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{name:e.target.value}):x; })});
                                 }}
                                 style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",
-                                  textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0,width:"100%"}}
+                                  textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
-                            </div>
-                            {/* Bottom row: status + delete */}
-                            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4,paddingLeft:36}}>
-                              <select value={s.status||"pending"}
-                                onChange={function(e){
-                                  updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{status:e.target.value}):x; })});
-                                }}
-                                style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
-                                {SS.map(function(sv){ return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>; })}
-                              </select>
-                              <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12}}
-                                onClick={function(){ updTask(t.id,{subtasks:subs.filter(function(x){ return x.id!==s.id; })}); }}>x</button>
+                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
+                                <select value={s.status||"pending"}
+                                  onChange={function(e){
+                                    updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{status:e.target.value}):x; })});
+                                  }}
+                                  style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
+                                  {SS.map(function(sv){ return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>; })}
+                                </select>
+                                <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12,paddingTop:1}}
+                                  onClick={function(){ updTask(t.id,{subtasks:subs.filter(function(x){ return x.id!==s.id; })}); }}>x</button>
+                              </div>
                             </div>
                           </div>
                         );
