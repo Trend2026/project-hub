@@ -78,12 +78,14 @@ function AutoTA(props) {
 }
 
 function PBar(props) {
-  var done = props.tasks.filter(function(t){ return t.status==="done"; }).length;
-  var pct  = props.tasks.length ? Math.round(done/props.tasks.length*100) : 0;
+  var allSubs = props.tasks.flatMap(function(t){ return t.subtasks||[]; });
+  var done    = allSubs.filter(function(s){ return s.done; }).length;
+  var total   = allSubs.length;
+  var pct     = total ? Math.round(done/total*100) : 0;
   return (
     <div style={{marginTop:8}}>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#888",marginBottom:3}}>
-        <span>{done}/{props.tasks.length} tasks</span><span>{pct}%</span>
+        <span>{total>0 ? done+"/"+total+" subtasks" : props.tasks.length+" tasks"}</span><span>{total>0 ? pct+"%" : ""}</span>
       </div>
       <div style={{height:4,borderRadius:2,background:"rgba(255,255,255,0.12)"}}>
         <div style={{height:4,borderRadius:2,background:props.color,width:pct+"%",transition:"width .4s"}} />
