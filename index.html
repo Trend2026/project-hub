@@ -366,8 +366,17 @@ function App() {
                     {p.description || <span style={{fontStyle:"italic",color:"#555"}}>No description</span>}
                   </div>
                   {firstTask && (
-                    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",fontSize:12,color:"#bbb",borderLeft:"3px solid "+p.color}}>
-                      <span style={{color:"#666",fontSize:11}}>NEXT: </span>{firstTask.name}
+                    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",borderLeft:"3px solid "+p.color}}>
+                      <div style={{fontSize:11,color:"#666",marginBottom:3}}>NEXT</div>
+                      <div style={{fontSize:12,color:"#bbb",marginBottom:4}}>{firstTask.name}</div>
+                      {(firstTask.subtasks||[]).filter(function(s){ return s.status==="development" && !s.done; }).slice(0,2).map(function(s){
+                        return (
+                          <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:5,marginTop:3}}>
+                            <span style={{color:"#fe203d",fontSize:9,marginTop:2,flexShrink:0}}>●</span>
+                            <span style={{fontSize:11,color:"#fe203d",lineHeight:1.4}}>{s.name}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   <PBar tasks={p.tasks} color={p.color}/>
