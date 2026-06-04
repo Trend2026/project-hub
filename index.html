@@ -84,7 +84,16 @@ function SBadge(props){
   return <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:99,background:c.bg,color:c.text,textTransform:"uppercase",letterSpacing:0.5}}>{c.label}</span>;
 }
 
-function App(){
+function AutoTextarea(props){
+  var ref=React.useRef(null);
+  React.useEffect(function(){
+    if(ref.current){
+      ref.current.style.height="auto";
+      ref.current.style.height=ref.current.scrollHeight+"px";
+    }
+  });
+  return <textarea ref={ref} {...props} style={Object.assign({},props.style,{overflow:"hidden",resize:"none"})}/>;
+}
   var useState=React.useState;
   var useEffect=React.useEffect;
   var useRef=React.useRef;
@@ -442,10 +451,9 @@ function App(){
                                   onChange={function(e){
                                     updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});
                                   }}
-                                  onInput={function(e){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+"px";}}
                                   rows={1}
-                                  style={{flex:"1 1 100px",minWidth:60,background:"transparent",border:"none",color:s.done?"#555":s.status==="development"?"#fe203d":"#E8832A",fontSize:12,outline:"none",
-                                    textDecoration:s.done?"line-through":"none",resize:"none",overflow:"hidden",lineHeight:1.5,padding:0}}
+                                  style={{flex:"1 1 100%",width:"100%",background:"transparent",border:"none",color:s.done?"#555":s.status==="development"?"#fe203d":"#E8832A",fontSize:12,outline:"none",
+                                    textDecoration:s.done?"line-through":"none",resize:"none",overflow:"visible",lineHeight:1.5,padding:0,whiteSpace:"pre-wrap",wordBreak:"break-word",minHeight:"1.5em"}}
                                 />
                                 <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                                   <select value={s.status||"pending"}
