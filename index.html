@@ -337,7 +337,7 @@ function App() {
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16,padding:"20px 24px 0"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,padding:"20px 24px 0"}}>
             {projects.map(function(p,idx){
               var firstTask = p.tasks[0];
               return (
