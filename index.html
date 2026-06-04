@@ -302,6 +302,7 @@ function App() {
       <div style={st.topBar}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           {view==="detail" && <button style={Object.assign({},st.btnSm,{marginRight:4})} onClick={goHome}>Back</button>}
+          {view==="detail" && <button style={Object.assign({},st.btnSm,{marginRight:4,borderColor:"#7F77DD",color:"#7F77DD"})} onClick={goHome}>Dashboard</button>}
           {view==="home"
             ? <span style={{fontWeight:600,fontSize:17,color:"#fff"}}>Project Hub</span>
             : <input value={proj?proj.name:""} onChange={function(e){ updProject(proj.id,{name:e.target.value}); }}
