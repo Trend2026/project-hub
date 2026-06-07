@@ -362,9 +362,7 @@ function App() {
                         onClick={function(e){ e.stopPropagation(); setDelConf(p.id); }}>x</button>
                     </div>
                   </div>
-                  <div style={{fontSize:12,color:"#888",lineHeight:1.5,marginBottom:10}}>
-                    {p.description || <span style={{fontStyle:"italic",color:"#555"}}>No description</span>}
-                  </div>
+                  {p.description && <div style={{fontSize:12,color:"#888",lineHeight:1.5,marginBottom:10}}>{p.description}</div>}
                   {firstTask && (
                     <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",borderLeft:"3px solid "+p.color}}>
                       <div style={{fontSize:11,color:"#666",marginBottom:3}}>NEXT</div>
