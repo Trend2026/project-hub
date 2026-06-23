@@ -123,8 +123,28 @@ function App() {
   var dragT    = useRef(null); var dragTOver    = useRef(null);
   var dragS    = useRef(null); var dragSOver    = useRef(null);
 
+  var s16 = useState(false); var showBackupReminder = s16[0]; var setShowBackupReminder = s16[1];
+
   useEffect(function(){
-    dbLoad().then(function(data){
+    var BACKUP_KEY = "projecthub_last_backup";
+    var THREE_HOURS = 3 * 60 * 60 * 1000;
+    function checkBackup(){
+      var last = localStorage.getItem(BACKUP_KEY);
+      if (!last || (Date.now() - parseInt(last)) > THREE_HOURS) {
+        setShowBackupReminder(true);
+      }
+    }
+    checkBackup();
+    var interval = setInterval(checkBackup, THREE_HOURS);
+    return function(){ clearInterval(interval); };
+  }, []);
+
+  function doBackup(){
+    var BACKUP_KEY = "projecthub_last_backup";
+    localStorage.setItem(BACKUP_KEY, Date.now().toString());
+    setShowBackupReminder(false);
+    exportBackup();
+  }
       setProjects(data && data.length ? data : []);
       setLoading(false);
     });
@@ -322,7 +342,7 @@ function App() {
         <div style={{display:"flex",gap:8}}>
           {view==="home" && <button style={st.btn} onClick={function(){ setAddPOpen(true); }}>+ New Project</button>}
           {view==="home" && <button style={st.btnSm} onClick={function(){ setImpOpen(true); }}>Import Trello</button>}
-          {view==="home" && <button style={Object.assign({},st.btnSm,{borderColor:"#1D9E75",color:"#1D9E75"})} onClick={exportBackup}>Backup</button>}
+          {view==="home" && <button style={Object.assign({},st.btnSm,{borderColor:"#1D9E75",color:"#1D9E75"})} onClick={doBackup}>Backup</button>}
           {view==="detail" && <button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={function(){ setAddTOpen(true); }}>+ Add Task</button>}
         </div>
       </div>
@@ -616,6 +636,25 @@ function App() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* BACKUP REMINDER */}
+      {showBackupReminder && (
+        <div style={st.modal}>
+          <div style={Object.assign({},st.mbox,{width:340,textAlign:"center"})}>
+            <div style={{fontSize:32,marginBottom:12}}>💾</div>
+            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:8}}>Time to Back Up!</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:20,lineHeight:1.6}}>
+              It's been over 3 hours since your last backup. Download a copy of your projects now to keep your data safe.
+            </div>
+            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+              <button style={Object.assign({},st.btnSm,{borderColor:"#555",color:"#555"})}
+                onClick={function(){ setShowBackupReminder(false); }}>Remind me later</button>
+              <button style={Object.assign({},st.btn,{background:"#1D9E75"})}
+                onClick={doBackup}>⬇ Backup Now</button>
+            </div>
           </div>
         </div>
       )}
