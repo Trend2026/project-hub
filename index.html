@@ -37,16 +37,13 @@ function dbLoad() {
 }
 
 function dbSaveAll(projects) {
-  return fetch(SURL+"/rest/v1/projects?id=eq."+AKEY, {method:"DELETE", headers:HDR})
-    .then(function(){
-      return fetch(SURL+"/rest/v1/projects", {
-        method:"POST",
-        headers: Object.assign({}, HDR, {Prefer:"return=minimal"}),
-        body: JSON.stringify({id:AKEY, data:JSON.stringify(projects), updated_at:new Date().toISOString()})
-      });
-    }).then(function(r){
-      if (!r.ok) throw new Error("Save failed");
-    });
+  return fetch(SURL+"/rest/v1/projects", {
+    method:"POST",
+    headers: Object.assign({}, HDR, {Prefer:"resolution=merge-duplicates,return=minimal"}),
+    body: JSON.stringify({id:AKEY, data:JSON.stringify(projects), updated_at:new Date().toISOString()})
+  }).then(function(r){
+    if (!r.ok) throw new Error("Save failed");
+  });
 }
 
 var PSC = {
