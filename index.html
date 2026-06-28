@@ -27,7 +27,9 @@ var SKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI
 var HDR = {"Content-Type":"application/json", apikey:SKEY, Authorization:"Bearer "+SKEY};
 var AKEY = "all_projects";
 var BACKUP_TS_KEY = "projecthub_last_backup";
+var COLOR_KEY = "projecthub_colors";
 var THREE_HOURS = 3 * 60 * 60 * 1000;
+var DEFAULT_COLORS = ["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56","#FFFFFF"];
 
 function dbLoad() {
   return fetch(SURL+"/rest/v1/projects?id=eq."+AKEY+"&select=*", {headers:HDR})
@@ -40,12 +42,10 @@ function dbLoad() {
 
 function dbSaveAll(projects) {
   return fetch(SURL+"/rest/v1/projects", {
-    method: "POST",
-    headers: Object.assign({}, HDR, {Prefer:"resolution=merge-duplicates,return=minimal"}),
-    body: JSON.stringify({id:AKEY, data:JSON.stringify(projects), updated_at:new Date().toISOString()})
-  }).then(function(r){
-    if (!r.ok) throw new Error("Save failed");
-  });
+    method:"POST",
+    headers:Object.assign({},HDR,{Prefer:"resolution=merge-duplicates,return=minimal"}),
+    body:JSON.stringify({id:AKEY, data:JSON.stringify(projects), updated_at:new Date().toISOString()})
+  }).then(function(r){ if (!r.ok) throw new Error("Save failed"); });
 }
 
 var PSC = {
@@ -58,30 +58,27 @@ var PSC = {
 var SS = ["development","pending"];
 var SL = {development:"Development", pending:"Pending"};
 var SC = {development:"#fe203d", pending:"#F6B53C"};
-var DEFAULT_COLORS = ["#7F77DD","#1D9E75","#378ADD","#D85A30","#D4537E","#BA7517","#E24B4A","#0F6E56","#FFFFFF"];
-var COLOR_STORAGE_KEY = "projecthub_colors";
 
 function uid() { return Math.random().toString(36).slice(2,9); }
 function tod() { return new Date().toISOString().slice(0,10); }
 function addD(d,n) { var dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().slice(0,10); }
+function lsGet(k,def) { try { var v=localStorage.getItem(k); return v?JSON.parse(v):def; } catch(e){ return def; } }
+function lsSet(k,v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch(e){} }
 
 function AutoTA(props) {
-  var taRef = React.useRef(null);
+  var ref = React.useRef(null);
   React.useEffect(function(){
-    if (taRef.current) {
-      taRef.current.style.height = "auto";
-      taRef.current.style.height = taRef.current.scrollHeight + "px";
-    }
+    if (ref.current) { ref.current.style.height="auto"; ref.current.style.height=ref.current.scrollHeight+"px"; }
   });
-  return <textarea ref={taRef} value={props.value} onChange={props.onChange} rows={1}
-    style={Object.assign({}, props.style, {overflow:"hidden", resize:"none"})} />;
+  return <textarea ref={ref} value={props.value} onChange={props.onChange} rows={1}
+    style={Object.assign({},props.style,{overflow:"hidden",resize:"none"})}/>;
 }
 
 function PBar(props) {
   var allSubs = props.tasks.flatMap(function(t){ return t.subtasks||[]; });
-  var done    = allSubs.filter(function(s){ return s.done; }).length;
-  var total   = allSubs.length;
-  var pct     = total ? Math.round(done/total*100) : 0;
+  var done = allSubs.filter(function(s){ return s.done; }).length;
+  var total = allSubs.length;
+  var pct = total ? Math.round(done/total*100) : 0;
   return (
     <div style={{marginTop:8}}>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#888",marginBottom:3}}>
@@ -96,157 +93,147 @@ function PBar(props) {
 }
 
 function SBadge(props) {
-  var c = PSC[props.status] || PSC.active;
+  var c = PSC[props.status]||PSC.active;
   return <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:99,background:c.bg,color:c.text,textTransform:"uppercase",letterSpacing:0.5}}>{c.label}</span>;
 }
 
 function App() {
-  var useState    = React.useState;
-  var useEffect   = React.useEffect;
-  var useRef      = React.useRef;
-  var useCallback = React.useCallback;
+  var useState=React.useState, useEffect=React.useEffect, useRef=React.useRef, useCallback=React.useCallback;
 
-  var s1  = useState([]);    var projects          = s1[0];  var setProjects          = s1[1];
-  var s2  = useState(true);  var loading           = s2[0];  var setLoading           = s2[1];
-  var s3  = useState("idle");var sync              = s3[0];  var setSync              = s3[1];
-  var s4  = useState("home");var view              = s4[0];  var setView              = s4[1];
-  var s5  = useState(null);  var aid               = s5[0];  var setAid               = s5[1];
-  var s6  = useState(false); var addPOpen          = s6[0];  var setAddPOpen          = s6[1];
-  var s7  = useState({name:"",description:"",color:PC[0],status:"active"}); var np = s7[0]; var setNp = s7[1];
-  var s8  = useState(false); var addTOpen          = s8[0];  var setAddTOpen          = s8[1];
-  var s9  = useState({name:""}); var nt = s9[0]; var setNt = s9[1];
-  var s10 = useState(null);  var editT             = s10[0]; var setEditT             = s10[1];
-  var s11 = useState(null);  var delConf           = s11[0]; var setDelConf           = s11[1];
-  var s12 = useState(false); var impOpen           = s12[0]; var setImpOpen           = s12[1];
-  var s13 = useState(null);  var impPrev           = s13[0]; var setImpPrev           = s13[1];
-  var s14 = useState("");    var impErr            = s14[0]; var setImpErr            = s14[1];
-  var s15 = useState(null);  var activeTask        = s15[0]; var setActiveTask        = s15[1];
-  var s16 = useState(false); var showBackupReminder= s16[0]; var setShowBackupReminder= s16[1];
+  var r1=useState([]);          var projects=r1[0];           var setProjects=r1[1];
+  var r2=useState(true);        var loading=r2[0];            var setLoading=r2[1];
+  var r3=useState("idle");      var sync=r3[0];               var setSync=r3[1];
+  var r4=useState("home");      var view=r4[0];               var setView=r4[1];
+  var r5=useState(null);        var aid=r5[0];                var setAid=r5[1];
+  var r6=useState(false);       var addPOpen=r6[0];           var setAddPOpen=r6[1];
+  var r7=useState({name:"",description:"",color:"#7F77DD",status:"active"}); var np=r7[0]; var setNp=r7[1];
+  var r8=useState(false);       var addTOpen=r8[0];           var setAddTOpen=r8[1];
+  var r9=useState({name:""});   var nt=r9[0];                 var setNt=r9[1];
+  var r10=useState(null);       var editT=r10[0];             var setEditT=r10[1];
+  var r11=useState(null);       var delConf=r11[0];           var setDelConf=r11[1];
+  var r12=useState(false);      var impOpen=r12[0];           var setImpOpen=r12[1];
+  var r13=useState(null);       var impPrev=r13[0];           var setImpPrev=r13[1];
+  var r14=useState("");         var impErr=r14[0];            var setImpErr=r14[1];
+  var r15=useState(null);       var activeTask=r15[0];        var setActiveTask=r15[1];
+  var r16=useState(false);      var showBkup=r16[0];          var setShowBkup=r16[1];
+  var r17=useState(null);       var editColorId=r17[0];       var setEditColorId=r17[1];
+  var r18=useState(function(){ return lsGet(COLOR_KEY,DEFAULT_COLORS); }); var palette=r18[0]; var setPalette=r18[1];
+  var r19=useState("#7F77DD");  var newColor=r19[0];          var setNewColor=r19[1];
 
-  var s18 = useState(function(){
-    try { var saved=localStorage.getItem(COLOR_STORAGE_KEY); return saved?JSON.parse(saved):DEFAULT_COLORS; } catch(e){ return DEFAULT_COLORS; }
-  }); var PC = s18[0]; var setPC = s18[1];
-  var s19 = useState("#7F77DD"); var newColor = s19[0]; var setNewColor = s19[1];
-
-  function saveColors(colors){ setPC(colors); try{ localStorage.setItem(COLOR_STORAGE_KEY,JSON.stringify(colors)); }catch(e){} }
-  function addColor(){ if (!PC.includes(newColor)){ saveColors(PC.concat([newColor])); } }
-  function removeColor(c){ saveColors(PC.filter(function(x){ return x!==c; })); }
-  var dragT  = useRef(null); var dragTO = useRef(null);
-  var dragS  = useRef(null); var dragSO = useRef(null);
+  var dragP=useRef(null); var dragPO=useRef(null);
+  var dragT=useRef(null); var dragTO=useRef(null);
+  var dragS=useRef(null); var dragSO=useRef(null);
 
   useEffect(function(){
-    dbLoad().then(function(data){
-      setProjects(data && data.length ? data : []);
-      setLoading(false);
-    });
-  }, []);
+    dbLoad().then(function(data){ setProjects(data&&data.length?data:[]); setLoading(false); });
+  },[]);
 
   useEffect(function(){
-    function checkBackup(){
-      var last = localStorage.getItem(BACKUP_TS_KEY);
-      if (!last || (Date.now() - parseInt(last)) > THREE_HOURS) {
-        setShowBackupReminder(true);
-      }
+    function check(){
+      var last=localStorage.getItem(BACKUP_TS_KEY);
+      if (!last||(Date.now()-parseInt(last))>THREE_HOURS) setShowBkup(true);
     }
-    checkBackup();
-    var iv = setInterval(checkBackup, THREE_HOURS);
+    check();
+    var iv=setInterval(check,THREE_HOURS);
     return function(){ clearInterval(iv); };
-  }, []);
+  },[]);
 
-  var persist = useCallback(function(updated){
+  var persist=useCallback(function(updated){
     setSync("saving");
-    dbSaveAll(updated).then(function(){
-      setSync("saved");
-      setTimeout(function(){ setSync("idle"); }, 2000);
-    }).catch(function(e){ setSync("error"); console.error(e); });
-  }, []);
+    dbSaveAll(updated).then(function(){ setSync("saved"); setTimeout(function(){ setSync("idle"); },2000); })
+      .catch(function(e){ setSync("error"); console.error(e); });
+  },[]);
 
-  var proj   = projects.find(function(p){ return p.id===aid; });
-  var totalT = projects.flatMap(function(p){ return p.tasks; }).length;
+  function savePalette(p){ setPalette(p); lsSet(COLOR_KEY,p); }
+  function addColor(){ if (!palette.includes(newColor)) savePalette(palette.concat([newColor])); }
+  function removeColor(c){ savePalette(palette.filter(function(x){ return x!==c; })); }
 
-  function openP(id)  { setAid(id); setView("detail"); setActiveTask(null); }
-  function goHome()   { setView("home"); setAid(null); setActiveTask(null); }
+  var proj=projects.find(function(p){ return p.id===aid; });
+  var totalT=projects.flatMap(function(p){ return p.tasks; }).length;
+
+  function openP(id){ setAid(id); setView("detail"); setActiveTask(null); }
+  function goHome(){ setView("home"); setAid(null); setActiveTask(null); }
 
   function pdStart(e,i){ dragP.current=i; e.dataTransfer.effectAllowed="move"; }
   function pdEnter(e,i){ dragPO.current=i; e.currentTarget.classList.add("drag-over"); }
-  function pdLeave(e)  { e.currentTarget.classList.remove("drag-over"); }
-  function pdOver(e)   { e.preventDefault(); }
-  function pdDrop(e)   {
+  function pdLeave(e){ e.currentTarget.classList.remove("drag-over"); }
+  function pdOver(e){ e.preventDefault(); }
+  function pdDrop(e){
     e.currentTarget.classList.remove("drag-over");
-    var f=dragP.current, t=dragPO.current; dragP.current=null; dragPO.current=null;
+    var f=dragP.current,t=dragPO.current; dragP.current=null; dragPO.current=null;
     if (f===null||t===null||f===t) return;
-    var u=projects.slice(); var item=u.splice(f,1)[0]; u.splice(t,0,item);
+    var u=projects.slice(); u.splice(t,0,u.splice(f,1)[0]);
     setProjects(u); persist(u);
   }
 
   function tdStart(e,i){ dragT.current=i; e.dataTransfer.effectAllowed="move"; }
   function tdEnter(e,i){ dragTO.current=i; e.currentTarget.classList.add("drag-over"); }
-  function tdLeave(e)  { e.currentTarget.classList.remove("drag-over"); }
-  function tdOver(e)   { e.preventDefault(); }
-  function tdDrop(e)   {
+  function tdLeave(e){ e.currentTarget.classList.remove("drag-over"); }
+  function tdOver(e){ e.preventDefault(); }
+  function tdDrop(e){
     e.currentTarget.classList.remove("drag-over");
-    var f=dragT.current, t=dragTO.current; dragT.current=null; dragTO.current=null;
+    var f=dragT.current,t=dragTO.current; dragT.current=null; dragTO.current=null;
     if (f===null||t===null||f===t) return;
     var u=projects.map(function(p){
       if (p.id!==aid) return p;
-      var tasks=p.tasks.slice(); var item=tasks.splice(f,1)[0]; tasks.splice(t,0,item);
+      var tasks=p.tasks.slice(); tasks.splice(t,0,tasks.splice(f,1)[0]);
       return Object.assign({},p,{tasks:tasks});
     });
     setProjects(u); persist(u);
   }
 
-  function sdStart(e,i)    { e.stopPropagation(); dragS.current=i; e.dataTransfer.effectAllowed="move"; }
-  function sdEnter(e,i)    { e.stopPropagation(); dragSO.current=i; e.currentTarget.classList.add("drag-over"); }
-  function sdLeave(e)      { e.stopPropagation(); e.currentTarget.classList.remove("drag-over"); }
-  function sdOver(e)       { e.stopPropagation(); e.preventDefault(); }
-  function sdDrop(e,tid)   {
+  function sdStart(e,i){ e.stopPropagation(); dragS.current=i; e.dataTransfer.effectAllowed="move"; }
+  function sdEnter(e,i){ e.stopPropagation(); dragSO.current=i; e.currentTarget.classList.add("drag-over"); }
+  function sdLeave(e){ e.stopPropagation(); e.currentTarget.classList.remove("drag-over"); }
+  function sdOver(e){ e.stopPropagation(); e.preventDefault(); }
+  function sdDrop(e,tid){
     e.stopPropagation(); e.currentTarget.classList.remove("drag-over");
-    var f=dragS.current, t=dragSO.current; dragS.current=null; dragSO.current=null;
+    var f=dragS.current,t=dragSO.current; dragS.current=null; dragSO.current=null;
     if (f===null||t===null||f===t) return;
     var u=projects.map(function(p){
       if (p.id!==aid) return p;
       return Object.assign({},p,{tasks:p.tasks.map(function(tk){
         if (tk.id!==tid) return tk;
-        var subs=tk.subtasks.slice(); var item=subs.splice(f,1)[0]; subs.splice(t,0,item);
+        var subs=tk.subtasks.slice(); subs.splice(t,0,subs.splice(f,1)[0]);
         return Object.assign({},tk,{subtasks:subs});
       })});
     });
     setProjects(u); persist(u);
   }
 
-  function addProject() {
+  function addProject(){
     if (!np.name.trim()) return;
     var p=Object.assign({},np,{id:uid(),tasks:[]});
     var u=projects.concat([p]);
-    setProjects(u); setNp({name:"",description:"",color:PC[0],status:"active"}); setAddPOpen(false); persist(u);
+    setProjects(u); setNp({name:"",description:"",color:palette[0]||"#7F77DD",status:"active"}); setAddPOpen(false); persist(u);
   }
-  function delProject(id) {
+  function delProject(id){
     var u=projects.filter(function(p){ return p.id!==id; });
     setProjects(u); setDelConf(null); persist(u);
   }
-  function updProject(id,changes) {
+  function updProject(id,changes){
     var u=projects.map(function(p){ return p.id===id?Object.assign({},p,changes):p; });
     setProjects(u); persist(u);
   }
-  function addTask() {
+  function addTask(){
     if (!nt.name.trim()) return;
     var t=Object.assign({},nt,{id:uid(),subtasks:[]});
     var u=projects.map(function(p){ return p.id===aid?Object.assign({},p,{tasks:p.tasks.concat([t])}):p; });
     setProjects(u); setNt({name:""}); setAddTOpen(false); persist(u);
   }
-  function delTask(tid) {
+  function delTask(tid){
     var u=projects.map(function(p){ return p.id===aid?Object.assign({},p,{tasks:p.tasks.filter(function(t){ return t.id!==tid; })}):p; });
     setProjects(u); persist(u);
   }
-  function updTask(tid,changes) {
+  function updTask(tid,changes){
     var u=projects.map(function(p){
       return p.id===aid?Object.assign({},p,{tasks:p.tasks.map(function(t){ return t.id===tid?Object.assign({},t,changes):t; })}):p;
     });
     setProjects(u); persist(u);
   }
-  function saveEdit() { if (!editT) return; updTask(editT.id,editT); setEditT(null); }
+  function saveEdit(){ if (!editT) return; updTask(editT.id,editT); setEditT(null); }
 
-  function exportBackup() {
+  function exportBackup(){
     var data={name:"Project Hub Backup",desc:"Exported "+new Date().toLocaleDateString(),
       lists:projects.map(function(p,i){ return {id:p.id,name:p.name,closed:false,pos:(i+1)*65536}; }),
       cards:projects.flatMap(function(p){
@@ -259,51 +246,41 @@ function App() {
       labels:[],members:[],exportedAt:new Date().toISOString()};
     var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     var url=URL.createObjectURL(blob);
-    var a=document.createElement("a"); a.href=url;
-    a.download="projecthub-backup-"+tod()+".json"; a.click(); URL.revokeObjectURL(url);
+    var a=document.createElement("a"); a.href=url; a.download="projecthub-backup-"+tod()+".json"; a.click(); URL.revokeObjectURL(url);
   }
+  function doBackup(){ lsSet(BACKUP_TS_KEY,Date.now()); setShowBkup(false); exportBackup(); }
 
-  function doBackup() {
-    localStorage.setItem(BACKUP_TS_KEY, Date.now().toString());
-    setShowBackupReminder(false);
-    exportBackup();
-  }
-
-  function handleTrello(e) {
+  function handleTrello(e){
     setImpErr(""); var file=e.target.files[0]; if (!file) return;
     file.text().then(function(text){
       var board=JSON.parse(text);
       var lists=board.lists.filter(function(l){ return !l.closed; });
       var cards=board.cards.filter(function(c){ return !c.closed; });
       setImpPrev(lists.map(function(l,i){
-        return {id:uid(),name:l.name,description:"",color:PC[i%PC.length],status:"active",
-          tasks:cards.filter(function(c){ return c.idList===l.id; }).map(function(c){
-            return {id:uid(),name:c.name,subtasks:[]};
-          })};
+        return {id:uid(),name:l.name,description:"",color:palette[i%palette.length]||"#7F77DD",status:"active",
+          tasks:cards.filter(function(c){ return c.idList===l.id; }).map(function(c){ return {id:uid(),name:c.name,subtasks:[]}; })};
       }));
     }).catch(function(){ setImpErr("Invalid Trello JSON file."); });
   }
-
-  function doImport(mode) {
+  function doImport(mode){
     if (!impPrev) return;
     var u=mode==="replace"?impPrev:projects.concat(impPrev);
-    setProjects(u); persist(u);
-    setImpOpen(false); setImpPrev(null); setImpErr("");
+    setProjects(u); persist(u); setImpOpen(false); setImpPrev(null); setImpErr("");
   }
 
-  var st = {
-    topBar: {background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"},
-    sCard:  {background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,padding:"12px 18px",minWidth:110},
-    pCard:  {background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:14,padding:"18px",cursor:"grab",transition:"border-color .2s,transform .15s"},
-    btn:    {background:"#7F77DD",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:13,fontWeight:500,cursor:"pointer"},
-    btnSm:  {background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"},
-    inp:    {background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%",boxSizing:"border-box"},
-    sel:    {background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%"},
-    modal:  {position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100},
-    mbox:   {background:"#1a1d27",border:"1px solid #2d3045",borderRadius:16,padding:"24px",width:400,maxWidth:"95vw"},
-    lbl:    {fontSize:12,color:"#888",marginBottom:4,display:"block"},
-    sec:    {fontSize:13,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12},
-    trow:   {display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
+  var st={
+    topBar:{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"},
+    sCard:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,padding:"12px 18px",minWidth:110},
+    pCard:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:14,padding:"18px",cursor:"grab",transition:"border-color .2s,transform .15s"},
+    btn:{background:"#7F77DD",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:13,fontWeight:500,cursor:"pointer"},
+    btnSm:{background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"},
+    inp:{background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%",boxSizing:"border-box"},
+    sel:{background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%"},
+    modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100},
+    mbox:{background:"#1a1d27",border:"1px solid #2d3045",borderRadius:16,padding:"24px",width:400,maxWidth:"95vw"},
+    lbl:{fontSize:12,color:"#888",marginBottom:4,display:"block"},
+    sec:{fontSize:13,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12},
+    trow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
   };
 
   if (loading) return (
@@ -355,8 +332,8 @@ function App() {
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,padding:"20px 24px 0"}}>
             {projects.map(function(p,idx){
-              var firstTask = p.tasks[0];
-              var devSubs = firstTask ? (firstTask.subtasks||[]).filter(function(s){ return s.status==="development" && !s.done; }).slice(0,2) : [];
+              var firstTask=p.tasks[0];
+              var devSubs=firstTask?(firstTask.subtasks||[]).filter(function(s){ return s.status==="development"&&!s.done; }).slice(0,2):[];
               return (
                 <div key={p.id} draggable={true}
                   onDragStart={function(e){ pdStart(e,idx); }}
@@ -370,7 +347,8 @@ function App() {
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
                       <span style={{color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
-                      <span title="Change colour" style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0,cursor:"pointer",border:"2px solid transparent",transition:"border .2s"}}
+                      <span title="Change colour"
+                        style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0,cursor:"pointer",border:"2px solid transparent",transition:"border .15s"}}
                         onClick={function(e){ e.stopPropagation(); setEditColorId(p.id); }}
                         onMouseEnter={function(e){ e.currentTarget.style.border="2px solid #fff"; }}
                         onMouseLeave={function(e){ e.currentTarget.style.border="2px solid transparent"; }}
@@ -413,9 +391,9 @@ function App() {
             <div style={st.sec}>Tasks</div>
             {proj.tasks.length===0 && <div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
             {proj.tasks.map(function(t,idx){
-              var subs    = t.subtasks || [];
-              var subDone = subs.filter(function(s){ return s.done; }).length;
-              var isOpen  = activeTask===t.id;
+              var subs=t.subtasks||[];
+              var subDone=subs.filter(function(s){ return s.done; }).length;
+              var isOpen=activeTask===t.id;
               return (
                 <div key={t.id} draggable={true}
                   onDragStart={function(e){ tdStart(e,idx); }}
@@ -423,12 +401,9 @@ function App() {
                   onDragLeave={tdLeave} onDragOver={tdOver} onDrop={tdDrop}
                   style={{marginBottom:6}}
                 >
-                  <div style={Object.assign({},st.trow,{
-                    borderColor:isOpen?"#D4537E55":"#222",
-                    background:isOpen?"rgba(212,83,126,0.07)":"#111318"
-                  })} onClick={function(){ setActiveTask(isOpen?null:t.id); }}>
-                    <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}}
-                      onClick={function(e){ e.stopPropagation(); }}>⠿</span>
+                  <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E55":"#222",background:isOpen?"rgba(212,83,126,0.07)":"#111318"})}
+                    onClick={function(){ setActiveTask(isOpen?null:t.id); }}>
+                    <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}} onClick={function(e){ e.stopPropagation(); }}>⠿</span>
                     <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
                       {t.name}
                       {subs.length>0 && <span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
@@ -441,12 +416,11 @@ function App() {
                       onClick={function(e){ e.stopPropagation(); delTask(t.id); }}>x</button>
                     <span style={{color:isOpen?"#D4537E":"#444",fontSize:10,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
                   </div>
-
                   {isOpen && (
                     <div style={{marginLeft:24,marginTop:4}}>
                       {subs.length===0 && <div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
                       {subs.map(function(s,sidx){
-                        var stColor = s.done?"#555":(s.status==="development"?"#fe203d":"#E8832A");
+                        var stColor=s.done?"#555":(s.status==="development"?"#fe203d":"#E8832A");
                         return (
                           <div key={s.id} draggable={true}
                             onDragStart={function(e){ sdStart(e,sidx); }}
@@ -458,22 +432,15 @@ function App() {
                             <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
                               <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
                               <input type="checkbox" checked={s.done||false}
-                                onChange={function(e){
-                                  updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x; })});
-                                }}
+                                onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x; })}); }}
                                 style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
                               <AutoTA value={s.name}
-                                onChange={function(e){
-                                  updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{name:e.target.value}):x; })});
-                                }}
-                                style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",
-                                  textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
+                                onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{name:e.target.value}):x; })}); }}
+                                style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
                               <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
                                 <select value={s.status||"pending"}
-                                  onChange={function(e){
-                                    updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{status:e.target.value}):x; })});
-                                  }}
+                                  onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{status:e.target.value}):x; })}); }}
                                   style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
                                   {SS.map(function(sv){ return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>; })}
                                 </select>
@@ -495,10 +462,10 @@ function App() {
           <div style={{width:"30%",minWidth:200,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
             <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
             {projects.map(function(p){
-              var isAct = p.id===aid;
-              var allSubs = p.tasks.flatMap(function(t){ return t.subtasks||[]; });
-              var pDone = allSubs.filter(function(s){ return s.done; }).length;
-              var pPct  = allSubs.length ? Math.round(pDone/allSubs.length*100) : 0;
+              var isAct=p.id===aid;
+              var allSubs=p.tasks.flatMap(function(t){ return t.subtasks||[]; });
+              var pDone=allSubs.filter(function(s){ return s.done; }).length;
+              var pPct=allSubs.length?Math.round(pDone/allSubs.length*100):0;
               return (
                 <div key={p.id} onClick={function(){ openP(p.id); }}
                   style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
@@ -541,9 +508,10 @@ function App() {
                 </select></div>
               <div><label style={st.lbl}>Colour</label>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                  {PC.map(function(c){ return (
+                  {palette.map(function(c){ return (
                     <div key={c} onClick={function(){ setNp(function(p){ return Object.assign({},p,{color:c}); }); }}
-                      style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",border:np.color===c?"2px solid #fff":"2px solid transparent"}}/>
+                      style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",
+                        border:np.color===c?"2px solid #7F77DD":"2px solid rgba(255,255,255,0.1)"}}/>
                   ); })}
                 </div></div>
             </div>
@@ -627,54 +595,32 @@ function App() {
         </div>
       )}
 
-      {/* BACKUP REMINDER */}
-      {showBackupReminder && (
-        <div style={st.modal}>
-          <div style={Object.assign({},st.mbox,{width:340,textAlign:"center"})}>
-            <div style={{fontSize:32,marginBottom:12}}>💾</div>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:8}}>Time to Back Up!</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:20,lineHeight:1.6}}>
-              It's been over 3 hours since your last backup. Download a copy now to keep your data safe.
-            </div>
-            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-              <button style={Object.assign({},st.btnSm,{borderColor:"#555",color:"#555"})}
-                onClick={function(){ setShowBackupReminder(false); }}>Remind me later</button>
-              <button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={doBackup}>⬇ Backup Now</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT COLOUR */}
+      {/* COLOUR PICKER */}
       {editColorId && (
         <div style={st.modal} onClick={function(){ setEditColorId(null); }}>
-          <div style={Object.assign({},st.mbox,{width:340})} onClick={function(e){ e.stopPropagation(); }}>
+          <div style={Object.assign({},st.mbox,{width:360})} onClick={function(e){ e.stopPropagation(); }}>
             <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:16}}>Change Project Colour</div>
-
-            {/* Colour swatches */}
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-start",marginBottom:16}}>
-              {PC.map(function(c){
-                var projObj = projects.find(function(p){ return p.id===editColorId; });
-                var isCurrent = projObj ? projObj.color===c : false;
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
+              {palette.map(function(c){
+                var projObj=projects.find(function(p){ return p.id===editColorId; });
+                var isCurrent=projObj?projObj.color===c:false;
                 return (
-                  <div key={c} style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+                  <div key={c} style={{position:"relative"}}>
                     <div onClick={function(){ updProject(editColorId,{color:c}); setEditColorId(null); }}
-                      style={{width:34,height:34,borderRadius:"50%",background:c,cursor:"pointer",
+                      style={{width:36,height:36,borderRadius:"50%",background:c,cursor:"pointer",
                         border:isCurrent?"3px solid #7F77DD":"3px solid rgba(255,255,255,0.15)",
                         transition:"transform .15s"}}
                       onMouseEnter={function(e){ e.currentTarget.style.transform="scale(1.15)"; }}
                       onMouseLeave={function(e){ e.currentTarget.style.transform="scale(1)"; }}
                     />
                     <button onClick={function(e){ e.stopPropagation(); removeColor(c); }}
-                      style={{position:"absolute",top:-4,right:-4,width:14,height:14,borderRadius:"50%",
+                      style={{position:"absolute",top:-4,right:-4,width:16,height:16,borderRadius:"50%",
                         background:"#E24B4A",border:"none",color:"#fff",fontSize:9,cursor:"pointer",
-                        display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1,padding:0}}>x</button>
+                        display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1}}>x</button>
                   </div>
                 );
               })}
             </div>
-
-            {/* Add new colour */}
             <div style={{borderTop:"1px solid #2a2d3a",paddingTop:14,marginBottom:14}}>
               <div style={{fontSize:12,color:"#888",marginBottom:8}}>Add a custom colour</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -684,9 +630,23 @@ function App() {
                 <button style={Object.assign({},st.btn,{padding:"6px 14px",fontSize:12})} onClick={addColor}>+ Add</button>
               </div>
             </div>
-
             <div style={{display:"flex",justifyContent:"flex-end"}}>
               <button style={st.btnSm} onClick={function(){ setEditColorId(null); }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BACKUP REMINDER */}
+      {showBkup && (
+        <div style={st.modal}>
+          <div style={Object.assign({},st.mbox,{width:340,textAlign:"center"})}>
+            <div style={{fontSize:32,marginBottom:12}}>💾</div>
+            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:8}}>Time to Back Up!</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:20,lineHeight:1.6}}>It's been over 3 hours since your last backup. Download a copy now to keep your data safe.</div>
+            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+              <button style={Object.assign({},st.btnSm,{borderColor:"#555",color:"#555"})} onClick={function(){ setShowBkup(false); }}>Remind me later</button>
+              <button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={doBackup}>⬇ Backup Now</button>
             </div>
           </div>
         </div>
