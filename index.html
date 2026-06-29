@@ -318,4 +318,202 @@ function App() {
           {view==="home" && <button style={st.btn} onClick={function(){ setAddPOpen(true); }}>+ New Project</button>}
           {view==="home" && <button style={st.btnSm} onClick={function(){ setImpOpen(true); }}>Import Trello</button>}
           {view==="home" && <button style={Object.assign({},st.btnSm,{borderColor:"#1D9E75",color:"#1D9E75"})} onClick={doBackup}>Backup</button>}
-          {view==="detail" && <button style={
+          {view==="detail" && <button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={function(){ setAddTOpen(true); }}>+ Add Task</button>}
+        </div>
+      </div>
+
+      {/* HOME */}
+      {view==="home" && (
+        <div>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}}>
+            <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
+            <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,padding:"20px 24px 0"}}>
+            {projects.map(function(p,idx){
+              var isOverdue = p.targetDate && p.targetDate < tod();
+              var inProgressTasks = p.tasks.filter(function(t){
+                return (t.subtasks||[]).some(function(s){ return s.status==="development" && !s.done; });
+              });
+              return (
+                <div key={p.id} draggable={true}
+                  onDragStart={function(e){ pdStart(e,idx); }}
+                  onDragEnter={function(e){ pdEnter(e,idx); }}
+                  onDragLeave={pdLeave} onDragOver={pdOver} onDrop={pdDrop}
+                  style={Object.assign({},st.pCard,{borderColor:isOverdue?"#E24B4A55":"#2a2d3a"})}
+                  onClick={function(){ openP(p.id); }}
+                  onMouseEnter={function(e){ e.currentTarget.style.borderColor=p.color; e.currentTarget.style.transform="translateY(-2px)"; }}
+                  onMouseLeave={function(e){ e.currentTarget.style.borderColor=isOverdue?"#E24B4A55":"#2a2d3a"; e.currentTarget.style.transform=""; }}
+                >
+                  {/* Header */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                      <span style={{color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
+                      <span title="Change colour"
+                        style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0,cursor:"pointer",border:"2px solid transparent",transition:"border .15s"}}
+                        onClick={function(e){ e.stopPropagation(); setEditColorId(p.id); }}
+                        onMouseEnter={function(e){ e.currentTarget.style.border="2px solid #fff"; }}
+                        onMouseLeave={function(e){ e.currentTarget.style.border="2px solid transparent"; }}
+                      />
+                      <span style={{fontWeight:600,fontSize:15,color:"#fff"}}>{p.name}</span>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <SBadge status={p.status}/>
+                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:14,padding:"2px 4px"}}
+                        onClick={function(e){ e.stopPropagation(); setDelConf(p.id); }}>x</button>
+                    </div>
+                  </div>
+
+                  {/* Target Goal */}
+                  <div style={{marginBottom:8}} onClick={function(e){ e.stopPropagation(); }}>
+                    <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Goal</div>
+                    <textarea value={p.description||""}
+                      onChange={function(e){ updProject(p.id,{description:e.target.value}); }}
+                      onClick={function(e){ e.stopPropagation(); }}
+                      placeholder="Set a target goal..."
+                      style={{width:"100%",background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
+                        padding:"5px 8px",color:"#aaa",fontSize:12,lineHeight:1.5,resize:"none",outline:"none",
+                        minHeight:44,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}
+                    />
+                  </div>
+
+                  {/* Target Date */}
+                  <div style={{marginBottom:10}} onClick={function(e){ e.stopPropagation(); }}>
+                    <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Date</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <input type="date" value={p.targetDate||""}
+                        onChange={function(e){ updProject(p.id,{targetDate:e.target.value}); }}
+                        onClick={function(e){ e.stopPropagation(); }}
+                        style={{flex:1,background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
+                          padding:"4px 8px",color:"#aaa",fontSize:12,outline:"none",colorScheme:"dark"}}
+                      />
+                      {isOverdue && <span style={{fontSize:10,color:"#E24B4A",fontWeight:600,flexShrink:0}}>OVERDUE</span>}
+                    </div>
+                  </div>
+
+                  {/* In Progress Tasks */}
+                  {inProgressTasks.length>0 && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>In Progress</div>
+                      {inProgressTasks.map(function(t){
+                        var devSubs=(t.subtasks||[]).filter(function(s){ return s.status==="development"&&!s.done; }).slice(0,2);
+                        return (
+                          <div key={t.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"6px 10px",borderLeft:"3px solid "+p.color,marginBottom:5}}>
+                            <div style={{fontSize:12,color:"#bbb",marginBottom:devSubs.length?3:0}}>{t.name}</div>
+                            {devSubs.map(function(s){
+                              return (
+                                <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:5,marginTop:2}}>
+                                  <span style={{color:"#fe203d",fontSize:9,marginTop:2,flexShrink:0}}>●</span>
+                                  <span style={{fontSize:11,color:"#fe203d",lineHeight:1.4}}>{s.name}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <PBar tasks={p.tasks} color={p.color}/>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* DETAIL */}
+      {view==="detail" && proj && (
+        <div style={{display:"flex"}}>
+          <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
+            <div style={st.sec}>Tasks</div>
+            {proj.tasks.length===0 && <div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
+            {proj.tasks.map(function(t,idx){
+              var subs=t.subtasks||[];
+              var subDone=subs.filter(function(s){ return s.done; }).length;
+              var isOpen=activeTask===t.id;
+              return (
+                <div key={t.id} draggable={true}
+                  onDragStart={function(e){ tdStart(e,idx); }}
+                  onDragEnter={function(e){ tdEnter(e,idx); }}
+                  onDragLeave={tdLeave} onDragOver={tdOver} onDrop={tdDrop}
+                  style={{marginBottom:6}}
+                >
+                  <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E55":"#222",background:isOpen?"rgba(212,83,126,0.07)":"#111318"})}
+                    onClick={function(){ setActiveTask(isOpen?null:t.id); }}>
+                    <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}} onClick={function(e){ e.stopPropagation(); }}>⠿</span>
+                    <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
+                      {t.name}
+                      {subs.length>0 && <span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
+                    </span>
+                    <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px",flexShrink:0}}
+                      onClick={function(e){ e.stopPropagation(); updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending"}])}); setActiveTask(t.id); }}>+Sub</button>
+                    <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px",flexShrink:0}}
+                      onClick={function(e){ e.stopPropagation(); setEditT(Object.assign({},t)); }}>Edit</button>
+                    <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px",flexShrink:0}}
+                      onClick={function(e){ e.stopPropagation(); delTask(t.id); }}>x</button>
+                    <span style={{color:isOpen?"#D4537E":"#444",fontSize:10,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
+                  </div>
+                  {isOpen && (
+                    <div style={{marginLeft:24,marginTop:4}}>
+                      {subs.length===0 && <div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
+                      {subs.map(function(s,sidx){
+                        var stColor=s.done?"#555":(s.status==="development"?"#fe203d":"#E8832A");
+                        return (
+                          <div key={s.id} draggable={true}
+                            onDragStart={function(e){ sdStart(e,sidx); }}
+                            onDragEnter={function(e){ sdEnter(e,sidx); }}
+                            onDragLeave={sdLeave} onDragOver={sdOver}
+                            onDrop={function(e){ sdDrop(e,t.id); }}
+                            style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a",padding:"6px 10px"}}
+                          >
+                            <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                              <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
+                              <input type="checkbox" checked={s.done||false}
+                                onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x; })}); }}
+                                style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
+                              <AutoTA value={s.name}
+                                onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{name:e.target.value}):x; })}); }}
+                                style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
+                              />
+                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
+                                <select value={s.status||"pending"}
+                                  onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{status:e.target.value}):x; })}); }}
+                                  style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
+                                  {SS.map(function(sv){ return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>; })}
+                                </select>
+                                <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12,paddingTop:1}}
+                                  onClick={function(){ updTask(t.id,{subtasks:subs.filter(function(x){ return x.id!==s.id; })}); }}>x</button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* SIDEBAR */}
+          <div style={{width:"30%",minWidth:200,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
+            <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
+            {projects.map(function(p){
+              var isAct=p.id===aid;
+              var allSubs=p.tasks.flatMap(function(t){ return t.subtasks||[]; });
+              var pDone=allSubs.filter(function(s){ return s.done; }).length;
+              var pPct=allSubs.length?Math.round(pDone/allSubs.length*100):0;
+              return (
+                <div key={p.id} onClick={function(){ openP(p.id); }}
+                  style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
+                    background:isAct?"rgba(127,119,221,0.15)":"transparent",
+                    border:"1px solid "+(isAct?p.color:"#222"),transition:"all .15s"}}
+                  onMouseEnter={function(e){ if(!isAct){ e.currentTarget.style.background="rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor="#333"; }}}
+                  onMouseLeave={function(e){ if(!isAct){ e.currentTarget.style.background="transparent"; e.currentTarget.style.borderColor="#222"; }}}
+                >
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
+                    <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}
