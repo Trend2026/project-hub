@@ -35,7 +35,7 @@ function dbLoad() {
   return fetch(SURL+"/rest/v1/projects?id=eq."+AKEY+"&select=*", {headers:HDR})
     .then(function(r){ return r.json(); })
     .then(function(rows){
-      if (!rows || !rows.length) return [];
+      if (!rows||!rows.length) return [];
       return JSON.parse(rows[0].data);
     }).catch(function(){ return []; });
 }
@@ -49,11 +49,12 @@ function dbSaveAll(projects) {
 }
 
 var PSC = {
-  active:     {label:"Active",      bg:"#1D9E75", text:"#E1F5EE"},
+  active:     {label:"Active",      bg:"#2980B9", text:"#EBF5FB"},
   inprogress: {label:"In Progress", bg:"#378ADD", text:"#E6F1FB"},
   onhold:     {label:"On Hold",     bg:"#BA7517", text:"#FAEEDA"},
   complete:   {label:"Complete",    bg:"#639922", text:"#EAF3DE"},
-  review:     {label:"Review",      bg:"#7F77DD", text:"#EEEDFE"}
+  review:     {label:"Review",      bg:"#7F77DD", text:"#EEEDFE"},
+  published:  {label:"Published",   bg:"#1D9E75", text:"#E1F5EE"}
 };
 var SS = ["development","pending"];
 var SL = {development:"Development", pending:"Pending"};
@@ -100,25 +101,25 @@ function SBadge(props) {
 function App() {
   var useState=React.useState, useEffect=React.useEffect, useRef=React.useRef, useCallback=React.useCallback;
 
-  var r1=useState([]);          var projects=r1[0];           var setProjects=r1[1];
-  var r2=useState(true);        var loading=r2[0];            var setLoading=r2[1];
-  var r3=useState("idle");      var sync=r3[0];               var setSync=r3[1];
-  var r4=useState("home");      var view=r4[0];               var setView=r4[1];
-  var r5=useState(null);        var aid=r5[0];                var setAid=r5[1];
-  var r6=useState(false);       var addPOpen=r6[0];           var setAddPOpen=r6[1];
-  var r7=useState({name:"",description:"",color:"#7F77DD",status:"active"}); var np=r7[0]; var setNp=r7[1];
-  var r8=useState(false);       var addTOpen=r8[0];           var setAddTOpen=r8[1];
-  var r9=useState({name:""});   var nt=r9[0];                 var setNt=r9[1];
-  var r10=useState(null);       var editT=r10[0];             var setEditT=r10[1];
-  var r11=useState(null);       var delConf=r11[0];           var setDelConf=r11[1];
-  var r12=useState(false);      var impOpen=r12[0];           var setImpOpen=r12[1];
-  var r13=useState(null);       var impPrev=r13[0];           var setImpPrev=r13[1];
-  var r14=useState("");         var impErr=r14[0];            var setImpErr=r14[1];
-  var r15=useState(null);       var activeTask=r15[0];        var setActiveTask=r15[1];
-  var r16=useState(false);      var showBkup=r16[0];          var setShowBkup=r16[1];
-  var r17=useState(null);       var editColorId=r17[0];       var setEditColorId=r17[1];
+  var r1=useState([]);    var projects=r1[0]; var setProjects=r1[1];
+  var r2=useState(true);  var loading=r2[0];  var setLoading=r2[1];
+  var r3=useState("idle");var sync=r3[0];     var setSync=r3[1];
+  var r4=useState("home");var view=r4[0];     var setView=r4[1];
+  var r5=useState(null);  var aid=r5[0];      var setAid=r5[1];
+  var r6=useState(false); var addPOpen=r6[0]; var setAddPOpen=r6[1];
+  var r7=useState({name:"",description:"",targetDate:"",color:"#7F77DD",status:"active"}); var np=r7[0]; var setNp=r7[1];
+  var r8=useState(false); var addTOpen=r8[0]; var setAddTOpen=r8[1];
+  var r9=useState({name:""}); var nt=r9[0]; var setNt=r9[1];
+  var r10=useState(null); var editT=r10[0];   var setEditT=r10[1];
+  var r11=useState(null); var delConf=r11[0]; var setDelConf=r11[1];
+  var r12=useState(false);var impOpen=r12[0]; var setImpOpen=r12[1];
+  var r13=useState(null); var impPrev=r13[0]; var setImpPrev=r13[1];
+  var r14=useState("");   var impErr=r14[0];  var setImpErr=r14[1];
+  var r15=useState(null); var activeTask=r15[0]; var setActiveTask=r15[1];
+  var r16=useState(false);var showBkup=r16[0];var setShowBkup=r16[1];
+  var r17=useState(null); var editColorId=r17[0]; var setEditColorId=r17[1];
   var r18=useState(function(){ return lsGet(COLOR_KEY,DEFAULT_COLORS); }); var palette=r18[0]; var setPalette=r18[1];
-  var r19=useState("#7F77DD");  var newColor=r19[0];          var setNewColor=r19[1];
+  var r19=useState("#7F77DD"); var newColor=r19[0]; var setNewColor=r19[1];
 
   var dragP=useRef(null); var dragPO=useRef(null);
   var dragT=useRef(null); var dragTO=useRef(null);
@@ -165,7 +166,6 @@ function App() {
     var u=projects.slice(); u.splice(t,0,u.splice(f,1)[0]);
     setProjects(u); persist(u);
   }
-
   function tdStart(e,i){ dragT.current=i; e.dataTransfer.effectAllowed="move"; }
   function tdEnter(e,i){ dragTO.current=i; e.currentTarget.classList.add("drag-over"); }
   function tdLeave(e){ e.currentTarget.classList.remove("drag-over"); }
@@ -181,7 +181,6 @@ function App() {
     });
     setProjects(u); persist(u);
   }
-
   function sdStart(e,i){ e.stopPropagation(); dragS.current=i; e.dataTransfer.effectAllowed="move"; }
   function sdEnter(e,i){ e.stopPropagation(); dragSO.current=i; e.currentTarget.classList.add("drag-over"); }
   function sdLeave(e){ e.stopPropagation(); e.currentTarget.classList.remove("drag-over"); }
@@ -205,7 +204,7 @@ function App() {
     if (!np.name.trim()) return;
     var p=Object.assign({},np,{id:uid(),tasks:[]});
     var u=projects.concat([p]);
-    setProjects(u); setNp({name:"",description:"",color:palette[0]||"#7F77DD",status:"active"}); setAddPOpen(false); persist(u);
+    setProjects(u); setNp({name:"",description:"",targetDate:"",color:palette[0]||"#7F77DD",status:"active"}); setAddPOpen(false); persist(u);
   }
   function delProject(id){
     var u=projects.filter(function(p){ return p.id!==id; });
@@ -257,7 +256,7 @@ function App() {
       var lists=board.lists.filter(function(l){ return !l.closed; });
       var cards=board.cards.filter(function(c){ return !c.closed; });
       setImpPrev(lists.map(function(l,i){
-        return {id:uid(),name:l.name,description:"",color:palette[i%palette.length]||"#7F77DD",status:"active",
+        return {id:uid(),name:l.name,description:"",targetDate:"",color:palette[i%palette.length]||"#7F77DD",status:"active",
           tasks:cards.filter(function(c){ return c.idList===l.id; }).map(function(c){ return {id:uid(),name:c.name,subtasks:[]}; })};
       }));
     }).catch(function(){ setImpErr("Invalid Trello JSON file."); });
@@ -319,368 +318,4 @@ function App() {
           {view==="home" && <button style={st.btn} onClick={function(){ setAddPOpen(true); }}>+ New Project</button>}
           {view==="home" && <button style={st.btnSm} onClick={function(){ setImpOpen(true); }}>Import Trello</button>}
           {view==="home" && <button style={Object.assign({},st.btnSm,{borderColor:"#1D9E75",color:"#1D9E75"})} onClick={doBackup}>Backup</button>}
-          {view==="detail" && <button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={function(){ setAddTOpen(true); }}>+ Add Task</button>}
-        </div>
-      </div>
-
-      {/* HOME */}
-      {view==="home" && (
-        <div>
-          <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}}>
-            <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
-            <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,padding:"20px 24px 0"}}>
-            {projects.map(function(p,idx){
-              var firstTask=p.tasks[0];
-              var devSubs=firstTask?(firstTask.subtasks||[]).filter(function(s){ return s.status==="development"&&!s.done; }).slice(0,2):[];
-              return (
-                <div key={p.id} draggable={true}
-                  onDragStart={function(e){ pdStart(e,idx); }}
-                  onDragEnter={function(e){ pdEnter(e,idx); }}
-                  onDragLeave={pdLeave} onDragOver={pdOver} onDrop={pdDrop}
-                  style={st.pCard}
-                  onClick={function(){ openP(p.id); }}
-                  onMouseEnter={function(e){ e.currentTarget.style.borderColor=p.color; e.currentTarget.style.transform="translateY(-2px)"; }}
-                  onMouseLeave={function(e){ e.currentTarget.style.borderColor="#2a2d3a"; e.currentTarget.style.transform=""; }}
-                >
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-                      <span style={{color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
-                      <span title="Change colour"
-                        style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0,cursor:"pointer",border:"2px solid transparent",transition:"border .15s"}}
-                        onClick={function(e){ e.stopPropagation(); setEditColorId(p.id); }}
-                        onMouseEnter={function(e){ e.currentTarget.style.border="2px solid #fff"; }}
-                        onMouseLeave={function(e){ e.currentTarget.style.border="2px solid transparent"; }}
-                      />
-                      <span style={{fontWeight:600,fontSize:15,color:"#fff"}}>{p.name}</span>
-                    </div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                      <SBadge status={p.status}/>
-                      <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:14,padding:"2px 4px"}}
-                        onClick={function(e){ e.stopPropagation(); setDelConf(p.id); }}>x</button>
-                    </div>
-                  </div>
-                  <div style={{marginBottom:10}} onClick={function(e){ e.stopPropagation(); }}>
-                    <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Goal</div>
-                    <textarea value={p.description||""}
-                      onChange={function(e){ updProject(p.id,{description:e.target.value}); }}
-                      onClick={function(e){ e.stopPropagation(); }}
-                      placeholder="Set a target goal..."
-                      style={{width:"100%",background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
-                        padding:"6px 8px",color:"#aaa",fontSize:12,lineHeight:1.5,resize:"none",outline:"none",
-                        minHeight:48,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}
-                    />
-                  </div>
-                  {firstTask && (
-                    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",borderLeft:"3px solid "+p.color,marginBottom:8}}>
-                      <div style={{fontSize:11,color:"#666",marginBottom:3}}>NEXT</div>
-                      <div style={{fontSize:12,color:"#bbb",marginBottom:devSubs.length?4:0}}>{firstTask.name}</div>
-                      {devSubs.map(function(s){
-                        return (
-                          <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:5,marginTop:3}}>
-                            <span style={{color:"#fe203d",fontSize:9,marginTop:2,flexShrink:0}}>●</span>
-                            <span style={{fontSize:11,color:"#fe203d",lineHeight:1.4}}>{s.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <PBar tasks={p.tasks} color={p.color}/>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* DETAIL */}
-      {view==="detail" && proj && (
-        <div style={{display:"flex"}}>
-          <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
-            <div style={st.sec}>Tasks</div>
-            {proj.tasks.length===0 && <div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
-            {proj.tasks.map(function(t,idx){
-              var subs=t.subtasks||[];
-              var subDone=subs.filter(function(s){ return s.done; }).length;
-              var isOpen=activeTask===t.id;
-              return (
-                <div key={t.id} draggable={true}
-                  onDragStart={function(e){ tdStart(e,idx); }}
-                  onDragEnter={function(e){ tdEnter(e,idx); }}
-                  onDragLeave={tdLeave} onDragOver={tdOver} onDrop={tdDrop}
-                  style={{marginBottom:6}}
-                >
-                  <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E55":"#222",background:isOpen?"rgba(212,83,126,0.07)":"#111318"})}
-                    onClick={function(){ setActiveTask(isOpen?null:t.id); }}>
-                    <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}} onClick={function(e){ e.stopPropagation(); }}>⠿</span>
-                    <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
-                      {t.name}
-                      {subs.length>0 && <span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
-                    </span>
-                    <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px",flexShrink:0}}
-                      onClick={function(e){ e.stopPropagation(); updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending"}])}); setActiveTask(t.id); }}>+Sub</button>
-                    <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px",flexShrink:0}}
-                      onClick={function(e){ e.stopPropagation(); setEditT(Object.assign({},t)); }}>Edit</button>
-                    <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px",flexShrink:0}}
-                      onClick={function(e){ e.stopPropagation(); delTask(t.id); }}>x</button>
-                    <span style={{color:isOpen?"#D4537E":"#444",fontSize:10,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
-                  </div>
-                  {isOpen && (
-                    <div style={{marginLeft:24,marginTop:4}}>
-                      {subs.length===0 && <div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
-                      {subs.map(function(s,sidx){
-                        var stColor=s.done?"#555":(s.status==="development"?"#fe203d":"#E8832A");
-                        return (
-                          <div key={s.id} draggable={true}
-                            onDragStart={function(e){ sdStart(e,sidx); }}
-                            onDragEnter={function(e){ sdEnter(e,sidx); }}
-                            onDragLeave={sdLeave} onDragOver={sdOver}
-                            onDrop={function(e){ sdDrop(e,t.id); }}
-                            style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a",padding:"6px 10px"}}
-                          >
-                            <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
-                              <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
-                              <input type="checkbox" checked={s.done||false}
-                                onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x; })}); }}
-                                style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
-                              <AutoTA value={s.name}
-                                onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{name:e.target.value}):x; })}); }}
-                                style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
-                              />
-                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
-                                <select value={s.status||"pending"}
-                                  onChange={function(e){ updTask(t.id,{subtasks:subs.map(function(x){ return x.id===s.id?Object.assign({},x,{status:e.target.value}):x; })}); }}
-                                  style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
-                                  {SS.map(function(sv){ return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>; })}
-                                </select>
-                                <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12,paddingTop:1}}
-                                  onClick={function(){ updTask(t.id,{subtasks:subs.filter(function(x){ return x.id!==s.id; })}); }}>x</button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* SIDEBAR */}
-          <div style={{width:"30%",minWidth:200,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
-            <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
-            {projects.map(function(p){
-              var isAct=p.id===aid;
-              var allSubs=p.tasks.flatMap(function(t){ return t.subtasks||[]; });
-              var pDone=allSubs.filter(function(s){ return s.done; }).length;
-              var pPct=allSubs.length?Math.round(pDone/allSubs.length*100):0;
-              return (
-                <div key={p.id} onClick={function(){ openP(p.id); }}
-                  style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
-                    background:isAct?"rgba(127,119,221,0.15)":"transparent",
-                    border:"1px solid "+(isAct?p.color:"#222"),transition:"all .15s"}}
-                  onMouseEnter={function(e){ if(!isAct){ e.currentTarget.style.background="rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor="#333"; }}}
-                  onMouseLeave={function(e){ if(!isAct){ e.currentTarget.style.background="transparent"; e.currentTarget.style.borderColor="#222"; }}}
-                >
-                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
-                    <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
-                      <div style={{height:3,borderRadius:2,background:p.color,width:pPct+"%"}}/>
-                    </div>
-                    <span style={{fontSize:10,color:"#555"}}>{pPct}%</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ADD PROJECT */}
-      {addPOpen && (
-        <div style={st.modal} onClick={function(){ setAddPOpen(false); }}>
-          <div style={st.mbox} onClick={function(e){ e.stopPropagation(); }}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>New Project</div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Project Name</label>
-              <input style={st.inp} value={np.name} onChange={function(e){ setNp(function(p){ return Object.assign({},p,{name:e.target.value}); }); }} placeholder="e.g. Website Redesign"/></div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Description</label>
-              <textarea style={Object.assign({},st.inp,{resize:"vertical",minHeight:60})} value={np.description}
-                onChange={function(e){ setNp(function(p){ return Object.assign({},p,{description:e.target.value}); }); }} placeholder="Short summary..."/></div>
-            <div style={{marginBottom:12,display:"flex",gap:12}}>
-              <div style={{flex:1}}><label style={st.lbl}>Status</label>
-                <select style={st.sel} value={np.status} onChange={function(e){ setNp(function(p){ return Object.assign({},p,{status:e.target.value}); }); }}>
-                  {Object.keys(PSC).map(function(k){ return <option key={k} value={k}>{PSC[k].label}</option>; })}
-                </select></div>
-              <div><label style={st.lbl}>Colour</label>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                  {palette.map(function(c){ return (
-                    <div key={c} onClick={function(){ setNp(function(p){ return Object.assign({},p,{color:c}); }); }}
-                      style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",
-                        border:np.color===c?"2px solid #7F77DD":"2px solid rgba(255,255,255,0.1)"}}/>
-                  ); })}
-                </div></div>
-            </div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
-              <button style={st.btnSm} onClick={function(){ setAddPOpen(false); }}>Cancel</button>
-              <button style={st.btn} onClick={addProject}>Create Project</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADD TASK */}
-      {addTOpen && (
-        <div style={st.modal} onClick={function(){ setAddTOpen(false); }}>
-          <div style={st.mbox} onClick={function(e){ e.stopPropagation(); }}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Add Task</div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
-              <input style={st.inp} value={nt.name} onChange={function(e){ setNt(function(t){ return Object.assign({},t,{name:e.target.value}); }); }} placeholder="e.g. Write copy"/></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
-              <button style={st.btnSm} onClick={function(){ setAddTOpen(false); }}>Cancel</button>
-              <button style={st.btn} onClick={addTask}>Add Task</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT TASK */}
-      {editT && (
-        <div style={st.modal} onClick={function(){ setEditT(null); }}>
-          <div style={st.mbox} onClick={function(e){ e.stopPropagation(); }}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>Edit Task</div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Task Name</label>
-              <input style={st.inp} value={editT.name} onChange={function(e){ setEditT(function(t){ return Object.assign({},t,{name:e.target.value}); }); }}/></div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
-              <button style={st.btnSm} onClick={function(){ setEditT(null); }}>Cancel</button>
-              <button style={st.btn} onClick={saveEdit}>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* IMPORT */}
-      {impOpen && (
-        <div style={st.modal} onClick={function(){ setImpOpen(false); setImpPrev(null); setImpErr(""); }}>
-          <div style={Object.assign({},st.mbox,{width:500,maxHeight:"80vh",overflowY:"auto"})} onClick={function(e){ e.stopPropagation(); }}>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:6}}>Import from Trello</div>
-            <div style={{fontSize:12,color:"#666",marginBottom:18,lineHeight:1.6}}>In Trello: open your board → Show Menu → More → Print and Export → Export as JSON. Then select the file below.</div>
-            {!impPrev ? (
-              <div>
-                <label style={{display:"block",background:"#111318",border:"2px dashed #333",borderRadius:10,padding:"24px",textAlign:"center",cursor:"pointer"}}>
-                  <input type="file" accept=".json" style={{display:"none"}} onChange={handleTrello}/>
-                  <div style={{fontSize:28,marginBottom:8}}>📂</div>
-                  <div style={{fontSize:13,color:"#888"}}>Click to select your Trello JSON file</div>
-                </label>
-                {impErr && <div style={{fontSize:12,color:"#E24B4A",marginTop:10}}>{impErr}</div>}
-                <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
-                  <button style={st.btnSm} onClick={function(){ setImpOpen(false); setImpErr(""); }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div style={{fontSize:12,color:"#1D9E75",marginBottom:12,fontWeight:500}}>Found {impPrev.length} projects with {impPrev.reduce(function(a,p){ return a+p.tasks.length; },0)} tasks</div>
-                <div style={{maxHeight:260,overflowY:"auto",marginBottom:16}}>
-                  {impPrev.map(function(p){ return (
-                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#111318",borderRadius:8,marginBottom:6,border:"1px solid #222"}}>
-                      <span style={{width:8,height:8,borderRadius:"50%",background:p.color,display:"inline-block",flexShrink:0}}/>
-                      <span style={{flex:1,fontSize:13,color:"#e0e0e0",fontWeight:500}}>{p.name}</span>
-                      <span style={{fontSize:11,color:"#666"}}>{p.tasks.length} tasks</span>
-                    </div>
-                  ); })}
-                </div>
-                <div style={{fontSize:12,color:"#888",marginBottom:14}}>How would you like to import?</div>
-                <div style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
-                  <button style={st.btnSm} onClick={function(){ setImpPrev(null); }}>Back</button>
-                  <button style={Object.assign({},st.btn,{background:"#378ADD"})} onClick={function(){ doImport("merge"); }}>Merge with existing</button>
-                  <button style={Object.assign({},st.btn,{background:"#E24B4A"})} onClick={function(){ doImport("replace"); }}>Replace all</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* COLOUR PICKER */}
-      {editColorId && (
-        <div style={st.modal} onClick={function(){ setEditColorId(null); }}>
-          <div style={Object.assign({},st.mbox,{width:360})} onClick={function(e){ e.stopPropagation(); }}>
-            <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:16}}>Change Project Colour</div>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
-              {palette.map(function(c){
-                var projObj=projects.find(function(p){ return p.id===editColorId; });
-                var isCurrent=projObj?projObj.color===c:false;
-                return (
-                  <div key={c} style={{position:"relative"}}>
-                    <div onClick={function(){ updProject(editColorId,{color:c}); setEditColorId(null); }}
-                      style={{width:36,height:36,borderRadius:"50%",background:c,cursor:"pointer",
-                        border:isCurrent?"3px solid #7F77DD":"3px solid rgba(255,255,255,0.15)",
-                        transition:"transform .15s"}}
-                      onMouseEnter={function(e){ e.currentTarget.style.transform="scale(1.15)"; }}
-                      onMouseLeave={function(e){ e.currentTarget.style.transform="scale(1)"; }}
-                    />
-                    <button onClick={function(e){ e.stopPropagation(); removeColor(c); }}
-                      style={{position:"absolute",top:-4,right:-4,width:16,height:16,borderRadius:"50%",
-                        background:"#E24B4A",border:"none",color:"#fff",fontSize:9,cursor:"pointer",
-                        display:"flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1}}>x</button>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{borderTop:"1px solid #2a2d3a",paddingTop:14,marginBottom:14}}>
-              <div style={{fontSize:12,color:"#888",marginBottom:8}}>Add a custom colour</div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input type="color" value={newColor} onChange={function(e){ setNewColor(e.target.value); }}
-                  style={{width:44,height:36,border:"1px solid #333",borderRadius:8,cursor:"pointer",background:"none",padding:2}}/>
-                <span style={{fontSize:13,color:"#aaa",flex:1}}>{newColor.toUpperCase()}</span>
-                <button style={Object.assign({},st.btn,{padding:"6px 14px",fontSize:12})} onClick={addColor}>+ Add</button>
-              </div>
-            </div>
-            <div style={{display:"flex",justifyContent:"flex-end"}}>
-              <button style={st.btnSm} onClick={function(){ setEditColorId(null); }}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* BACKUP REMINDER */}
-      {showBkup && (
-        <div style={st.modal}>
-          <div style={Object.assign({},st.mbox,{width:340,textAlign:"center"})}>
-            <div style={{fontSize:32,marginBottom:12}}>💾</div>
-            <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:8}}>Time to Back Up!</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:20,lineHeight:1.6}}>It's been over 3 hours since your last backup. Download a copy now to keep your data safe.</div>
-            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-              <button style={Object.assign({},st.btnSm,{borderColor:"#555",color:"#555"})} onClick={function(){ setShowBkup(false); }}>Remind me later</button>
-              <button style={Object.assign({},st.btn,{background:"#1D9E75"})} onClick={doBackup}>⬇ Backup Now</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* DELETE */}
-      {delConf && (
-        <div style={st.modal} onClick={function(){ setDelConf(null); }}>
-          <div style={Object.assign({},st.mbox,{width:320})} onClick={function(e){ e.stopPropagation(); }}>
-            <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:10}}>Delete Project?</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:20}}>This will permanently remove the project and all its tasks.</div>
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button style={st.btnSm} onClick={function(){ setDelConf(null); }}>Cancel</button>
-              <button style={Object.assign({},st.btn,{background:"#E24B4A"})} onClick={function(){ delProject(delConf); }}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-</script>
-</body>
-</html>
+          {view==="detail" && <button style={
