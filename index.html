@@ -35,7 +35,7 @@ function dbLoad() {
   return fetch(SURL+"/rest/v1/projects?id=eq."+AKEY+"&select=*", {headers:HDR})
     .then(function(r){ return r.json(); })
     .then(function(rows){
-      if (!rows || !rows.length) return [];
+      if (!rows||!rows.length) return [];
       return JSON.parse(rows[0].data);
     }).catch(function(){ return []; });
 }
@@ -49,11 +49,12 @@ function dbSaveAll(projects) {
 }
 
 var PSC = {
-  active:     {label:"Active",      bg:"#1D9E75", text:"#E1F5EE"},
+  active:     {label:"Active",      bg:"#2980B9", text:"#EBF5FB"},
   inprogress: {label:"In Progress", bg:"#378ADD", text:"#E6F1FB"},
   onhold:     {label:"On Hold",     bg:"#BA7517", text:"#FAEEDA"},
   complete:   {label:"Complete",    bg:"#639922", text:"#EAF3DE"},
-  review:     {label:"Review",      bg:"#7F77DD", text:"#EEEDFE"}
+  review:     {label:"Review",      bg:"#7F77DD", text:"#EEEDFE"},
+  published:  {label:"Published",   bg:"#1D9E75", text:"#E1F5EE"}
 };
 var SS = ["development","pending"];
 var SL = {development:"Development", pending:"Pending"};
@@ -100,25 +101,25 @@ function SBadge(props) {
 function App() {
   var useState=React.useState, useEffect=React.useEffect, useRef=React.useRef, useCallback=React.useCallback;
 
-  var r1=useState([]);          var projects=r1[0];           var setProjects=r1[1];
-  var r2=useState(true);        var loading=r2[0];            var setLoading=r2[1];
-  var r3=useState("idle");      var sync=r3[0];               var setSync=r3[1];
-  var r4=useState("home");      var view=r4[0];               var setView=r4[1];
-  var r5=useState(null);        var aid=r5[0];                var setAid=r5[1];
-  var r6=useState(false);       var addPOpen=r6[0];           var setAddPOpen=r6[1];
-  var r7=useState({name:"",description:"",color:"#7F77DD",status:"active"}); var np=r7[0]; var setNp=r7[1];
-  var r8=useState(false);       var addTOpen=r8[0];           var setAddTOpen=r8[1];
-  var r9=useState({name:""});   var nt=r9[0];                 var setNt=r9[1];
-  var r10=useState(null);       var editT=r10[0];             var setEditT=r10[1];
-  var r11=useState(null);       var delConf=r11[0];           var setDelConf=r11[1];
-  var r12=useState(false);      var impOpen=r12[0];           var setImpOpen=r12[1];
-  var r13=useState(null);       var impPrev=r13[0];           var setImpPrev=r13[1];
-  var r14=useState("");         var impErr=r14[0];            var setImpErr=r14[1];
-  var r15=useState(null);       var activeTask=r15[0];        var setActiveTask=r15[1];
-  var r16=useState(false);      var showBkup=r16[0];          var setShowBkup=r16[1];
-  var r17=useState(null);       var editColorId=r17[0];       var setEditColorId=r17[1];
+  var r1=useState([]);    var projects=r1[0]; var setProjects=r1[1];
+  var r2=useState(true);  var loading=r2[0];  var setLoading=r2[1];
+  var r3=useState("idle");var sync=r3[0];     var setSync=r3[1];
+  var r4=useState("home");var view=r4[0];     var setView=r4[1];
+  var r5=useState(null);  var aid=r5[0];      var setAid=r5[1];
+  var r6=useState(false); var addPOpen=r6[0]; var setAddPOpen=r6[1];
+  var r7=useState({name:"",description:"",targetDate:"",color:"#7F77DD",status:"active"}); var np=r7[0]; var setNp=r7[1];
+  var r8=useState(false); var addTOpen=r8[0]; var setAddTOpen=r8[1];
+  var r9=useState({name:""}); var nt=r9[0]; var setNt=r9[1];
+  var r10=useState(null); var editT=r10[0];   var setEditT=r10[1];
+  var r11=useState(null); var delConf=r11[0]; var setDelConf=r11[1];
+  var r12=useState(false);var impOpen=r12[0]; var setImpOpen=r12[1];
+  var r13=useState(null); var impPrev=r13[0]; var setImpPrev=r13[1];
+  var r14=useState("");   var impErr=r14[0];  var setImpErr=r14[1];
+  var r15=useState(null); var activeTask=r15[0]; var setActiveTask=r15[1];
+  var r16=useState(false);var showBkup=r16[0];var setShowBkup=r16[1];
+  var r17=useState(null); var editColorId=r17[0]; var setEditColorId=r17[1];
   var r18=useState(function(){ return lsGet(COLOR_KEY,DEFAULT_COLORS); }); var palette=r18[0]; var setPalette=r18[1];
-  var r19=useState("#7F77DD");  var newColor=r19[0];          var setNewColor=r19[1];
+  var r19=useState("#7F77DD"); var newColor=r19[0]; var setNewColor=r19[1];
 
   var dragP=useRef(null); var dragPO=useRef(null);
   var dragT=useRef(null); var dragTO=useRef(null);
@@ -165,7 +166,6 @@ function App() {
     var u=projects.slice(); u.splice(t,0,u.splice(f,1)[0]);
     setProjects(u); persist(u);
   }
-
   function tdStart(e,i){ dragT.current=i; e.dataTransfer.effectAllowed="move"; }
   function tdEnter(e,i){ dragTO.current=i; e.currentTarget.classList.add("drag-over"); }
   function tdLeave(e){ e.currentTarget.classList.remove("drag-over"); }
@@ -181,7 +181,6 @@ function App() {
     });
     setProjects(u); persist(u);
   }
-
   function sdStart(e,i){ e.stopPropagation(); dragS.current=i; e.dataTransfer.effectAllowed="move"; }
   function sdEnter(e,i){ e.stopPropagation(); dragSO.current=i; e.currentTarget.classList.add("drag-over"); }
   function sdLeave(e){ e.stopPropagation(); e.currentTarget.classList.remove("drag-over"); }
@@ -205,7 +204,7 @@ function App() {
     if (!np.name.trim()) return;
     var p=Object.assign({},np,{id:uid(),tasks:[]});
     var u=projects.concat([p]);
-    setProjects(u); setNp({name:"",description:"",color:palette[0]||"#7F77DD",status:"active"}); setAddPOpen(false); persist(u);
+    setProjects(u); setNp({name:"",description:"",targetDate:"",color:palette[0]||"#7F77DD",status:"active"}); setAddPOpen(false); persist(u);
   }
   function delProject(id){
     var u=projects.filter(function(p){ return p.id!==id; });
@@ -257,7 +256,7 @@ function App() {
       var lists=board.lists.filter(function(l){ return !l.closed; });
       var cards=board.cards.filter(function(c){ return !c.closed; });
       setImpPrev(lists.map(function(l,i){
-        return {id:uid(),name:l.name,description:"",color:palette[i%palette.length]||"#7F77DD",status:"active",
+        return {id:uid(),name:l.name,description:"",targetDate:"",color:palette[i%palette.length]||"#7F77DD",status:"active",
           tasks:cards.filter(function(c){ return c.idList===l.id; }).map(function(c){ return {id:uid(),name:c.name,subtasks:[]}; })};
       }));
     }).catch(function(){ setImpErr("Invalid Trello JSON file."); });
@@ -332,18 +331,21 @@ function App() {
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,padding:"20px 24px 0"}}>
             {projects.map(function(p,idx){
-              var firstTask=p.tasks[0];
-              var devSubs=firstTask?(firstTask.subtasks||[]).filter(function(s){ return s.status==="development"&&!s.done; }).slice(0,2):[];
+              var isOverdue = p.targetDate && p.targetDate < tod();
+              var inProgressTasks = p.tasks.filter(function(t){
+                return (t.subtasks||[]).some(function(s){ return s.status==="development" && !s.done; });
+              });
               return (
                 <div key={p.id} draggable={true}
                   onDragStart={function(e){ pdStart(e,idx); }}
                   onDragEnter={function(e){ pdEnter(e,idx); }}
                   onDragLeave={pdLeave} onDragOver={pdOver} onDrop={pdDrop}
-                  style={st.pCard}
+                  style={Object.assign({},st.pCard,{borderColor:isOverdue?"#E24B4A55":"#2a2d3a"})}
                   onClick={function(){ openP(p.id); }}
                   onMouseEnter={function(e){ e.currentTarget.style.borderColor=p.color; e.currentTarget.style.transform="translateY(-2px)"; }}
-                  onMouseLeave={function(e){ e.currentTarget.style.borderColor="#2a2d3a"; e.currentTarget.style.transform=""; }}
+                  onMouseLeave={function(e){ e.currentTarget.style.borderColor=isOverdue?"#E24B4A55":"#2a2d3a"; e.currentTarget.style.transform=""; }}
                 >
+                  {/* Header */}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
                       <span style={{color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
@@ -361,31 +363,57 @@ function App() {
                         onClick={function(e){ e.stopPropagation(); setDelConf(p.id); }}>x</button>
                     </div>
                   </div>
-                  <div style={{marginBottom:10}} onClick={function(e){ e.stopPropagation(); }}>
+
+                  {/* Target Goal */}
+                  <div style={{marginBottom:8}} onClick={function(e){ e.stopPropagation(); }}>
                     <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Goal</div>
                     <textarea value={p.description||""}
                       onChange={function(e){ updProject(p.id,{description:e.target.value}); }}
                       onClick={function(e){ e.stopPropagation(); }}
                       placeholder="Set a target goal..."
                       style={{width:"100%",background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
-                        padding:"6px 8px",color:"#aaa",fontSize:12,lineHeight:1.5,resize:"none",outline:"none",
-                        minHeight:48,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}
+                        padding:"5px 8px",color:"#aaa",fontSize:12,lineHeight:1.5,resize:"none",outline:"none",
+                        minHeight:44,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}
                     />
                   </div>
-                  {firstTask && (
-                    <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",borderLeft:"3px solid "+p.color,marginBottom:8}}>
-                      <div style={{fontSize:11,color:"#666",marginBottom:3}}>NEXT</div>
-                      <div style={{fontSize:12,color:"#bbb",marginBottom:devSubs.length?4:0}}>{firstTask.name}</div>
-                      {devSubs.map(function(s){
+
+                  {/* Target Date */}
+                  <div style={{marginBottom:10}} onClick={function(e){ e.stopPropagation(); }}>
+                    <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Date</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <input type="date" value={p.targetDate||""}
+                        onChange={function(e){ updProject(p.id,{targetDate:e.target.value}); }}
+                        onClick={function(e){ e.stopPropagation(); }}
+                        style={{flex:1,background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
+                          padding:"4px 8px",color:"#aaa",fontSize:12,outline:"none",colorScheme:"dark"}}
+                      />
+                      {isOverdue && <span style={{fontSize:10,color:"#E24B4A",fontWeight:600,flexShrink:0}}>OVERDUE</span>}
+                    </div>
+                  </div>
+
+                  {/* In Progress Tasks */}
+                  {inProgressTasks.length>0 && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>In Progress</div>
+                      {inProgressTasks.map(function(t){
+                        var devSubs=(t.subtasks||[]).filter(function(s){ return s.status==="development"&&!s.done; }).slice(0,2);
                         return (
-                          <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:5,marginTop:3}}>
-                            <span style={{color:"#fe203d",fontSize:9,marginTop:2,flexShrink:0}}>●</span>
-                            <span style={{fontSize:11,color:"#fe203d",lineHeight:1.4}}>{s.name}</span>
+                          <div key={t.id} style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"6px 10px",borderLeft:"3px solid "+p.color,marginBottom:5}}>
+                            <div style={{fontSize:12,color:"#bbb",marginBottom:devSubs.length?3:0}}>{t.name}</div>
+                            {devSubs.map(function(s){
+                              return (
+                                <div key={s.id} style={{display:"flex",alignItems:"flex-start",gap:5,marginTop:2}}>
+                                  <span style={{color:"#fe203d",fontSize:9,marginTop:2,flexShrink:0}}>●</span>
+                                  <span style={{fontSize:11,color:"#fe203d",lineHeight:1.4}}>{s.name}</span>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })}
                     </div>
                   )}
+
                   <PBar tasks={p.tasks} color={p.color}/>
                 </div>
               );
@@ -508,9 +536,12 @@ function App() {
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:18}}>New Project</div>
             <div style={{marginBottom:12}}><label style={st.lbl}>Project Name</label>
               <input style={st.inp} value={np.name} onChange={function(e){ setNp(function(p){ return Object.assign({},p,{name:e.target.value}); }); }} placeholder="e.g. Website Redesign"/></div>
-            <div style={{marginBottom:12}}><label style={st.lbl}>Description</label>
+            <div style={{marginBottom:12}}><label style={st.lbl}>Target Goal</label>
               <textarea style={Object.assign({},st.inp,{resize:"vertical",minHeight:60})} value={np.description}
-                onChange={function(e){ setNp(function(p){ return Object.assign({},p,{description:e.target.value}); }); }} placeholder="Short summary..."/></div>
+                onChange={function(e){ setNp(function(p){ return Object.assign({},p,{description:e.target.value}); }); }} placeholder="What is the goal for this project?"/></div>
+            <div style={{marginBottom:12}}><label style={st.lbl}>Target Date</label>
+              <input type="date" style={Object.assign({},st.inp,{colorScheme:"dark"})} value={np.targetDate}
+                onChange={function(e){ setNp(function(p){ return Object.assign({},p,{targetDate:e.target.value}); }); }}/></div>
             <div style={{marginBottom:12,display:"flex",gap:12}}>
               <div style={{flex:1}}><label style={st.lbl}>Status</label>
                 <select style={st.sel} value={np.status} onChange={function(e){ setNp(function(p){ return Object.assign({},p,{status:e.target.value}); }); }}>
@@ -618,8 +649,7 @@ function App() {
                   <div key={c} style={{position:"relative"}}>
                     <div onClick={function(){ updProject(editColorId,{color:c}); setEditColorId(null); }}
                       style={{width:36,height:36,borderRadius:"50%",background:c,cursor:"pointer",
-                        border:isCurrent?"3px solid #7F77DD":"3px solid rgba(255,255,255,0.15)",
-                        transition:"transform .15s"}}
+                        border:isCurrent?"3px solid #7F77DD":"3px solid rgba(255,255,255,0.15)",transition:"transform .15s"}}
                       onMouseEnter={function(e){ e.currentTarget.style.transform="scale(1.15)"; }}
                       onMouseLeave={function(e){ e.currentTarget.style.transform="scale(1)"; }}
                     />
