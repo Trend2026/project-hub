@@ -56,9 +56,9 @@ var PSC = {
   review:     {label:"Review",      bg:"#7F77DD", text:"#EEEDFE"},
   published:  {label:"Published",   bg:"#1D9E75", text:"#E1F5EE"}
 };
-var SS = ["development","pending"];
-var SL = {development:"Development", pending:"Pending"};
-var SC = {development:"#fe203d", pending:"#F6B53C"};
+var SS = ["development","pending","active","published"];
+var SL = {development:"Development", pending:"Pending", active:"Active", published:"Published"};
+var SC = {development:"#fe203d", pending:"#F6B53C", active:"#378ADD", published:"#1D9E75"};
 
 function uid() { return Math.random().toString(36).slice(2,9); }
 function tod() { return new Date().toISOString().slice(0,10); }
@@ -458,7 +458,7 @@ function App() {
                     <div style={{marginLeft:24,marginTop:4}}>
                       {subs.length===0 && <div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
                       {subs.map(function(s,sidx){
-                        var stColor=s.done?"#555":(s.status==="development"?"#fe203d":"#E8832A");
+                        var stColor=s.done?"#555":(SC[s.status||"pending"]||"#E8832A");
                         return (
                           <div key={s.id} draggable={true}
                             onDragStart={function(e){ sdStart(e,sidx); }}
