@@ -361,7 +361,17 @@ function App() {
                         onClick={function(e){ e.stopPropagation(); setDelConf(p.id); }}>x</button>
                     </div>
                   </div>
-                  {p.description && <div style={{fontSize:12,color:"#888",lineHeight:1.5,marginBottom:10}}>{p.description}</div>}
+                  <div style={{marginBottom:10}} onClick={function(e){ e.stopPropagation(); }}>
+                    <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Goal</div>
+                    <textarea value={p.description||""}
+                      onChange={function(e){ updProject(p.id,{description:e.target.value}); }}
+                      onClick={function(e){ e.stopPropagation(); }}
+                      placeholder="Set a target goal..."
+                      style={{width:"100%",background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
+                        padding:"6px 8px",color:"#aaa",fontSize:12,lineHeight:1.5,resize:"none",outline:"none",
+                        minHeight:48,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}
+                    />
+                  </div>
                   {firstTask && (
                     <div style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"7px 10px",borderLeft:"3px solid "+p.color,marginBottom:8}}>
                       <div style={{fontSize:11,color:"#666",marginBottom:3}}>NEXT</div>
