@@ -121,7 +121,8 @@ function App() {
   var r18=useState(function(){ return lsGet(COLOR_KEY,DEFAULT_COLORS); }); var palette=r18[0]; var setPalette=r18[1];
   var r19=useState("#7F77DD"); var newColor=r19[0]; var setNewColor=r19[1];
 
-  var dragP=useRef(null); var dragPO=useRef(null);
+  var r20=useState(""); var search=r20[0]; var setSearch=r20[1];
+  var r21=useState(false); var searchFocused=r21[0]; var setSearchFocused=r21[1];
   var dragT=useRef(null); var dragTO=useRef(null);
   var dragS=useRef(null); var dragSO=useRef(null);
 
@@ -151,6 +152,23 @@ function App() {
 
   var proj=projects.find(function(p){ return p.id===aid; });
   var totalT=projects.flatMap(function(p){ return p.tasks; }).length;
+
+  var searchResults = search.trim().length>1 ? (function(){
+    var q=search.trim().toLowerCase();
+    var results=[];
+    projects.forEach(function(p){
+      var matches=[];
+      p.tasks.forEach(function(t){
+        if (t.name.toLowerCase().indexOf(q)>-1) matches.push({type:"task",text:t.name});
+        (t.subtasks||[]).forEach(function(s){
+          if (s.name.toLowerCase().indexOf(q)>-1) matches.push({type:"subtask",text:s.name});
+        });
+      });
+      if (p.name.toLowerCase().indexOf(q)>-1) matches.unshift({type:"project",text:p.name});
+      if (matches.length>0) results.push({project:p,matches:matches});
+    });
+    return results;
+  })() : [];
 
   function openP(id){ setAid(id); setView("detail"); setActiveTask(null); }
   function goHome(){ setView("home"); setAid(null); setActiveTask(null); }
