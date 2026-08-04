@@ -59,7 +59,6 @@ var SC={development:"#fe203d",pending:"#F6B53C",active:"#378ADD",published:"#1D9
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function tod(){return new Date().toISOString().slice(0,10);}
-function addD(d,n){var dt=new Date(d);dt.setDate(dt.getDate()+n);return dt.toISOString().slice(0,10);}
 function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
@@ -98,26 +97,26 @@ function SBadge(props){
 function App(){
   var useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback;
 
-  var r1=useState([]);   var projects=r1[0];      var setProjects=r1[1];
-  var r2=useState(true); var loading=r2[0];       var setLoading=r2[1];
-  var r3=useState("idle");var sync=r3[0];         var setSync=r3[1];
-  var r4=useState("home");var view=r4[0];         var setView=r4[1];
-  var r5=useState(null); var aid=r5[0];           var setAid=r5[1];
-  var r6=useState(false);var addPOpen=r6[0];      var setAddPOpen=r6[1];
+  var r1=useState([]);    var projects=r1[0];   var setProjects=r1[1];
+  var r2=useState(true);  var loading=r2[0];    var setLoading=r2[1];
+  var r3=useState("idle");var sync=r3[0];       var setSync=r3[1];
+  var r4=useState("home");var view=r4[0];       var setView=r4[1];
+  var r5=useState(null);  var aid=r5[0];        var setAid=r5[1];
+  var r6=useState(false); var addPOpen=r6[0];   var setAddPOpen=r6[1];
   var r7=useState({name:"",description:"",targetDate:"",color:"#7F77DD",status:"active"});var np=r7[0];var setNp=r7[1];
-  var r8=useState(false);var addTOpen=r8[0];      var setAddTOpen=r8[1];
-  var r9=useState({name:""});var nt=r9[0];        var setNt=r9[1];
-  var r10=useState(null);var editT=r10[0];        var setEditT=r10[1];
-  var r11=useState(null);var delConf=r11[0];      var setDelConf=r11[1];
-  var r12=useState(false);var impOpen=r12[0];     var setImpOpen=r12[1];
-  var r13=useState(null);var impPrev=r13[0];      var setImpPrev=r13[1];
-  var r14=useState("");  var impErr=r14[0];       var setImpErr=r14[1];
-  var r15=useState(null);var activeTask=r15[0];   var setActiveTask=r15[1];
-  var r16=useState(false);var showBkup=r16[0];    var setShowBkup=r16[1];
-  var r17=useState(null);var editColorId=r17[0];  var setEditColorId=r17[1];
+  var r8=useState(false); var addTOpen=r8[0];   var setAddTOpen=r8[1];
+  var r9=useState({name:""});var nt=r9[0];      var setNt=r9[1];
+  var r10=useState(null); var editT=r10[0];     var setEditT=r10[1];
+  var r11=useState(null); var delConf=r11[0];   var setDelConf=r11[1];
+  var r12=useState(false);var impOpen=r12[0];   var setImpOpen=r12[1];
+  var r13=useState(null); var impPrev=r13[0];   var setImpPrev=r13[1];
+  var r14=useState("");   var impErr=r14[0];    var setImpErr=r14[1];
+  var r15=useState(null); var activeTask=r15[0];var setActiveTask=r15[1];
+  var r16=useState(false);var showBkup=r16[0];  var setShowBkup=r16[1];
+  var r17=useState(null); var editColorId=r17[0];var setEditColorId=r17[1];
   var r18=useState(function(){return lsGet(COLOR_KEY,DEFAULT_COLORS);});var palette=r18[0];var setPalette=r18[1];
   var r19=useState("#7F77DD");var newColor=r19[0];var setNewColor=r19[1];
-  var r20=useState("");  var search=r20[0];       var setSearch=r20[1];
+  var r20=useState("");   var search=r20[0];    var setSearch=r20[1];
   var r21=useState(false);var searchFocused=r21[0];var setSearchFocused=r21[1];
 
   var dragP=useRef(null);var dragPO=useRef(null);
@@ -138,7 +137,8 @@ function App(){
 
   var persist=useCallback(function(updated){
     setSync("saving");
-    dbSaveAll(updated).then(function(){setSync("saved");setTimeout(function(){setSync("idle");},2000);})
+    dbSaveAll(updated)
+      .then(function(){setSync("saved");setTimeout(function(){setSync("idle");},2000);})
       .catch(function(e){setSync("error");console.error(e);});
   },[]);
 
@@ -149,22 +149,21 @@ function App(){
   var proj=projects.find(function(p){return p.id===aid;});
   var totalT=projects.flatMap(function(p){return p.tasks;}).length;
 
-  // Search
   var searchResults=search.trim().length>1?(function(){
     var q=search.trim().toLowerCase();
-    var results=[];
+    var out=[];
     projects.forEach(function(p){
-      var matches=[];
-      if(p.name.toLowerCase().indexOf(q)>-1)matches.push({type:"project",text:p.name});
+      var m=[];
+      if(p.name.toLowerCase().indexOf(q)>-1)m.push({type:"project",text:p.name});
       p.tasks.forEach(function(t){
-        if(t.name.toLowerCase().indexOf(q)>-1)matches.push({type:"task",text:t.name});
+        if(t.name.toLowerCase().indexOf(q)>-1)m.push({type:"task",text:t.name});
         (t.subtasks||[]).forEach(function(s){
-          if(s.name.toLowerCase().indexOf(q)>-1)matches.push({type:"subtask",text:s.name});
+          if(s.name.toLowerCase().indexOf(q)>-1)m.push({type:"subtask",text:s.name});
         });
       });
-      if(matches.length>0)results.push({project:p,matches:matches});
+      if(m.length)out.push({project:p,matches:m});
     });
-    return results;
+    return out;
   })():[];
 
   function openP(id){setAid(id);setView("detail");setActiveTask(null);}
@@ -221,7 +220,10 @@ function App(){
     var u=projects.concat([p]);
     setProjects(u);setNp({name:"",description:"",targetDate:"",color:palette[0]||"#7F77DD",status:"active"});setAddPOpen(false);persist(u);
   }
-  function delProject(id){var u=projects.filter(function(p){return p.id!==id;});setProjects(u);setDelConf(null);persist(u);}
+  function delProject(id){
+    var u=projects.filter(function(p){return p.id!==id;});
+    setProjects(u);setDelConf(null);persist(u);
+  }
   function updProject(id,changes){
     var u=projects.map(function(p){return p.id===id?Object.assign({},p,changes):p;});
     setProjects(u);persist(u);
@@ -239,6 +241,24 @@ function App(){
   function updTask(tid,changes){
     var u=projects.map(function(p){
       return p.id===aid?Object.assign({},p,{tasks:p.tasks.map(function(t){return t.id===tid?Object.assign({},t,changes):t;})}):p;
+    });
+    setProjects(u);persist(u);
+  }
+  function updSub(tid,sid,changes){
+    var u=projects.map(function(p){
+      return p.id===aid?Object.assign({},p,{tasks:p.tasks.map(function(t){
+        return t.id===tid?Object.assign({},t,{subtasks:t.subtasks.map(function(s){
+          return s.id===sid?Object.assign({},s,changes):s;
+        })}):t;
+      })}):p;
+    });
+    setProjects(u);persist(u);
+  }
+  function delSub(tid,sid){
+    var u=projects.map(function(p){
+      return p.id===aid?Object.assign({},p,{tasks:p.tasks.map(function(t){
+        return t.id===tid?Object.assign({},t,{subtasks:t.subtasks.filter(function(s){return s.id!==sid;})}):t;
+      })}):p;
     });
     setProjects(u);persist(u);
   }
@@ -336,13 +356,12 @@ function App(){
       {/* HOME */}
       {view==="home"&&(
         <div>
-          {/* STAT CARDS */}
           <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}}>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
           </div>
 
-          {/* SEARCH BAR */}
+          {/* SEARCH */}
           <div style={{padding:"16px 24px 0",position:"relative"}}>
             <div style={{position:"relative",maxWidth:500}}>
               <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#555",fontSize:14,pointerEvents:"none"}}>🔍</span>
@@ -352,17 +371,14 @@ function App(){
                 onBlur={function(){setTimeout(function(){setSearchFocused(false);},200);}}
                 placeholder="Search projects, tasks, subtasks..."
                 style={{width:"100%",background:"#1a1d27",border:"1px solid "+(searchFocused?"#7F77DD":"#2a2d3a"),
-                  borderRadius:10,padding:"10px 36px 10px 36px",color:"#eee",fontSize:13,outline:"none",transition:"border .2s"}}
+                  borderRadius:10,padding:"10px 36px",color:"#eee",fontSize:13,outline:"none",transition:"border .2s"}}
               />
               {search&&<button onClick={function(){setSearch("");}}
-                style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>}
+                style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:18}}>×</button>}
             </div>
-
-            {/* SEARCH RESULTS */}
             {search.trim().length>1&&(
               <div style={{position:"absolute",top:"calc(100% + 4px)",left:24,width:500,maxWidth:"calc(100vw - 48px)",
-                background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,zIndex:50,
-                maxHeight:380,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
+                background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,zIndex:50,maxHeight:380,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
                 {searchResults.length===0&&(
                   <div style={{padding:16,fontSize:13,color:"#555",textAlign:"center"}}>No results found for "{search}"</div>
                 )}
@@ -416,7 +432,6 @@ function App(){
                   onMouseEnter={function(e){e.currentTarget.style.borderColor=p.color;e.currentTarget.style.transform="translateY(-2px)";}}
                   onMouseLeave={function(e){e.currentTarget.style.borderColor=isOverdue?"#E24B4A55":"#2a2d3a";e.currentTarget.style.transform="";}}
                 >
-                  {/* Header */}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
                       <span style={{color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
@@ -435,34 +450,26 @@ function App(){
                     </div>
                   </div>
 
-                  {/* Target Goal */}
                   <div style={{marginBottom:8}} onClick={function(e){e.stopPropagation();}}>
                     <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Goal</div>
-                    <textarea value={p.description||""}
-                      onChange={function(e){updProject(p.id,{description:e.target.value});}}
-                      onClick={function(e){e.stopPropagation();}}
-                      placeholder="Set a target goal..."
+                    <textarea value={p.description||""} onChange={function(e){updProject(p.id,{description:e.target.value});}}
+                      onClick={function(e){e.stopPropagation();}} placeholder="Set a target goal..."
                       style={{width:"100%",background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
                         padding:"5px 8px",color:"#aaa",fontSize:12,lineHeight:1.5,resize:"none",outline:"none",
-                        minHeight:44,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}
-                    />
+                        minHeight:44,boxSizing:"border-box",fontFamily:"system-ui,sans-serif"}}/>
                   </div>
 
-                  {/* Target Date */}
                   <div style={{marginBottom:10}} onClick={function(e){e.stopPropagation();}}>
                     <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>Target Date</div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <input type="date" value={p.targetDate||""}
-                        onChange={function(e){updProject(p.id,{targetDate:e.target.value});}}
+                      <input type="date" value={p.targetDate||""} onChange={function(e){updProject(p.id,{targetDate:e.target.value});}}
                         onClick={function(e){e.stopPropagation();}}
                         style={{flex:1,background:"rgba(255,255,255,0.03)",border:"1px solid #2a2d3a",borderRadius:6,
-                          padding:"4px 8px",color:"#aaa",fontSize:12,outline:"none",colorScheme:"dark"}}
-                      />
+                          padding:"4px 8px",color:"#aaa",fontSize:12,outline:"none",colorScheme:"dark"}}/>
                       {isOverdue&&<span style={{fontSize:10,color:"#E24B4A",fontWeight:600,flexShrink:0}}>OVERDUE</span>}
                     </div>
                   </div>
 
-                  {/* In Progress Tasks */}
                   {inProgressTasks.length>0&&(
                     <div style={{marginBottom:8}}>
                       <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:0.6,marginBottom:4}}>In Progress</div>
@@ -518,48 +525,50 @@ function App(){
                       {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
                     </span>
                     <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px",flexShrink:0}}
-                      onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending"}])});setActiveTask(t.id);}}>+Sub</button>
+                      onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending",date:""}])});setActiveTask(t.id);}}>+Sub</button>
                     <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px",flexShrink:0}}
                       onClick={function(e){e.stopPropagation();setEditT(Object.assign({},t));}}>Edit</button>
                     <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px",flexShrink:0}}
                       onClick={function(e){e.stopPropagation();delTask(t.id);}}>x</button>
                     <span style={{color:isOpen?"#D4537E":"#444",fontSize:10,flexShrink:0}}>{isOpen?"▲":"▼"}</span>
                   </div>
+
                   {isOpen&&(
                     <div style={{marginLeft:24,marginTop:4}}>
                       {subs.length===0&&<div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
                       {subs.map(function(s,sidx){
                         var stColor=s.done?"#555":(SC[s.status||"pending"]||"#E8832A");
+                        var subOverdue=s.date&&s.date<tod();
                         return(
                           <div key={s.id} draggable={true}
                             onDragStart={function(e){sdStart(e,sidx);}}
                             onDragEnter={function(e){sdEnter(e,sidx);}}
                             onDragLeave={sdLeave} onDragOver={sdOver}
                             onDrop={function(e){sdDrop(e,t.id);}}
-                            style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid #1a1a2a",padding:"6px 10px"}}
+                            style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,border:"1px solid "+(subOverdue?"#E24B4A44":"#1a1a2a"),padding:"6px 10px"}}
                           >
                             <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
                               <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
                               <input type="checkbox" checked={s.done||false}
-                                onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{done:e.target.checked}):x;})});}}
+                                onChange={function(e){updSub(t.id,s.id,{done:e.target.checked});}}
                                 style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
                               <AutoTA value={s.name}
-                                onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{name:e.target.value}):x;})});}}
+                                onChange={function(e){updSub(t.id,s.id,{name:e.target.value});}}
                                 style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
                               <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
                                 <input type="date" value={s.date||""}
-                                  onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{date:e.target.value}):x;});});}}
-                                  style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 6px",
-                                    fontSize:11,color:s.date&&s.date<tod()?"#E24B4A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
+                                  onChange={function(e){updSub(t.id,s.id,{date:e.target.value});}}
+                                  style={{background:"#111318",border:"1px solid "+(subOverdue?"#E24B4A":"#2a2d3a"),borderRadius:6,
+                                    padding:"2px 6px",fontSize:11,color:subOverdue?"#E24B4A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
                                 />
                                 <select value={s.status||"pending"}
-                                  onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});}}
+                                  onChange={function(e){updSub(t.id,s.id,{status:e.target.value});}}
                                   style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
                                   {SS.map(function(sv){return <option key={sv} value={sv} style={{color:SC[sv]}}>{SL[sv]}</option>;})}
                                 </select>
                                 <button style={{background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:12,paddingTop:1}}
-                                  onClick={function(){updTask(t.id,{subtasks:subs.filter(function(x){return x.id!==s.id;})});}}>x</button>
+                                  onClick={function(){delSub(t.id,s.id);}}>x</button>
                               </div>
                             </div>
                           </div>
