@@ -548,6 +548,11 @@ function App(){
                                 style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
                               <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
+                                <input type="date" value={s.date||""}
+                                  onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{date:e.target.value}):x;});});}}
+                                  style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 6px",
+                                    fontSize:11,color:s.date&&s.date<tod()?"#E24B4A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
+                                />
                                 <select value={s.status||"pending"}
                                   onChange={function(e){updTask(t.id,{subtasks:subs.map(function(x){return x.id===s.id?Object.assign({},x,{status:e.target.value}):x;})});}}
                                   style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
