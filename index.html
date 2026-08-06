@@ -535,10 +535,18 @@ function App(){
               style={{background:"transparent",border:"none",borderBottom:"1px solid #444",color:"#fff",fontSize:17,fontWeight:600,outline:"none",padding:"2px 4px",minWidth:180}}/>
           }
           {view==="detail"&&proj&&(
-            <select value={proj.status} onChange={function(e){updProject(proj.id,{status:e.target.value});}}
-              style={Object.assign({},st.sel,{width:"auto",fontSize:12,padding:"4px 8px",marginLeft:8})}>
-              {Object.keys(PSC).map(function(k){return <option key={k} value={k}>{PSC[k].label}</option>;})}
-            </select>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:4}}>
+              <span title="Change colour"
+                style={{width:12,height:12,borderRadius:"50%",background:proj.color,display:"inline-block",flexShrink:0,cursor:"pointer",border:"2px solid transparent",transition:"border .15s"}}
+                onClick={function(){setEditColorId(proj.id);}}
+                onMouseEnter={function(e){e.currentTarget.style.border="2px solid #fff";}}
+                onMouseLeave={function(e){e.currentTarget.style.border="2px solid transparent";}}
+              />
+              <select value={proj.status} onChange={function(e){updProject(proj.id,{status:e.target.value});}}
+                style={Object.assign({},st.sel,{width:"auto",fontSize:12,padding:"4px 8px"})}>
+                {Object.keys(PSC).map(function(k){return <option key={k} value={k}>{PSC[k].label}</option>;})}
+              </select>
+            </div>
           )}
           {sync!=="idle"&&(
             <span style={{fontSize:11,marginLeft:12,color:sync==="saving"?"#BA7517":sync==="saved"?"#1D9E75":"#E24B4A"}}>
