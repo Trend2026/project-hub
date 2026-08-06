@@ -99,18 +99,14 @@ function GanttView(props){
   var projects=props.projects;
   var goHome=props.goHome;
 
-  // Collect all subtasks with dates across all projects
   var rows=[];
   projects.forEach(function(p){
     p.tasks.forEach(function(t){
       (t.subtasks||[]).forEach(function(s){
-        if(s.date){
-          rows.push({project:p,task:t,sub:s,date:s.date});
-        }
+        if(s.date) rows.push({project:p,task:t,sub:s,date:s.date});
       });
     });
   });
-
   rows.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
 
   if(rows.length===0){
@@ -130,29 +126,49 @@ function GanttView(props){
     );
   }
 
-  var dates=rows.map(function(r){return new Date(r.date);});
-  var minD=new Date(Math.min.apply(null,dates));
-  var maxD=new Date(Math.max.apply(null,dates));
-  // pad by 3 days each side
-  minD.setDate(minD.getDate()-3);
-  maxD.setDate(maxD.getDate()+3);
-  var span=Math.max((maxD-minD)/86400000,1);
+  var todayStr=tod();
+  var todayD=new Date(todayStr);
 
-  var todayD=new Date(tod());
-  var todayPct=((todayD-minD)/86400000/span)*100;
+  // Build day range — pad 2 days each side
+  var allDates=rows.map(function(r){return new Date(r.date);});
+  var minD=new Date(Math.min.apply(null,allDates));
+  var maxD=new Date(Math.max.apply(null,allDates));
+  minD.setDate(minD.getDate()-2);
+  maxD.setDate(maxD.getDate()+2);
 
-  function pct(d){return Math.max(0,Math.min(100,((new Date(d)-minD)/86400000/span)*100));}
-
-  // Build month labels
-  var monthLabels=[];
-  var cur=new Date(minD);cur.setDate(1);
+  // Build array of all days in range
+  var days=[];
+  var cur=new Date(minD);
   while(cur<=maxD){
-    var lp=((cur-minD)/86400000/span)*100;
-    monthLabels.push({label:cur.toLocaleString("default",{month:"short",year:"2-digit"}),pct:lp});
-    cur.setMonth(cur.getMonth()+1);
+    days.push(new Date(cur));
+    cur.setDate(cur.getDate()+1);
+  }
+  var totalDays=days.length;
+
+  var LABEL_W=220;
+  var COL_W=44; // px per day
+  var ROW_H=40;
+  var HEADER_H=56;
+
+  var dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  function dayIndex(dateStr){
+    var d=new Date(dateStr);
+    return Math.round((d-minD)/86400000);
   }
 
-  var LABEL_W=200;
+  // Group months for top header
+  var monthGroups=[];
+  days.forEach(function(d,i){
+    var key=d.getFullYear()+"-"+d.getMonth();
+    if(!monthGroups.length||monthGroups[monthGroups.length-1].key!==key){
+      monthGroups.push({key:key,label:monthNames[d.getMonth()]+" "+d.getFullYear(),startIdx:i,count:0});
+    }
+    monthGroups[monthGroups.length-1].count++;
+  });
+
+  var chartW=totalDays*COL_W;
 
   return(
     <div style={{minHeight:"100vh",background:"#111318",paddingBottom:40}}>
@@ -161,104 +177,49 @@ function GanttView(props){
         <button onClick={goHome} style={{background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"}}>Back</button>
         <button onClick={goHome} style={{background:"transparent",color:"#7F77DD",border:"1px solid #7F77DD",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"}}>Dashboard</button>
         <span style={{fontWeight:600,fontSize:17,color:"#fff"}}>Timeline</span>
-        <span style={{fontSize:12,color:"#555",marginLeft:4}}>{rows.length} scheduled subtasks across {projects.length} projects</span>
+        <span style={{fontSize:12,color:"#555",marginLeft:4}}>{rows.length} scheduled subtasks</span>
       </div>
 
       {/* Legend */}
-      <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}}>
-        {projects.filter(function(p){
-          return p.tasks.some(function(t){return(t.subtasks||[]).some(function(s){return s.date;});});
-        }).map(function(p){
-          return(
-            <div key={p.id} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#aaa"}}>
-              <span style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block"}}/>
-              {p.name}
-            </div>
-          );
+      <div style={{display:"flex",gap:20,flexWrap:"wrap",padding:"12px 24px",borderBottom:"1px solid #1a1d27",alignItems:"center"}}>
+        {projects.filter(function(p){return p.tasks.some(function(t){return(t.subtasks||[]).some(function(s){return s.date;});});}).map(function(p){
+          return <div key={p.id} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#aaa"}}>
+            <span style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block"}}/>{p.name}
+          </div>;
         })}
+        <div style={{marginLeft:"auto",display:"flex",gap:14,fontSize:11,color:"#555"}}>
+          <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:12,height:12,background:"rgba(230,50,50,0.18)",display:"inline-block",borderRadius:2}}/>Past</span>
+          <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:2,height:12,background:"#E24B4A",display:"inline-block"}}/>Today</span>
+          <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,background:"#639922",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Done</span>
+          <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,background:"#E24B4A",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Overdue</span>
+        </div>
       </div>
 
-      {/* Chart */}
-      <div style={{padding:"20px 24px 0",overflowX:"auto"}}>
-        <div style={{minWidth:700}}>
+      {/* Scrollable chart area */}
+      <div style={{overflowX:"auto",padding:"0 24px 24px"}}>
+        <div style={{display:"flex",minWidth:LABEL_W+chartW}}>
 
-          {/* Month headers */}
-          <div style={{display:"flex",marginBottom:8,paddingLeft:LABEL_W}}>
-            <div style={{flex:1,position:"relative",height:20}}>
-              {monthLabels.map(function(m,i){
-                return(
-                  <span key={i} style={{position:"absolute",left:m.pct+"%",fontSize:11,color:"#555",whiteSpace:"nowrap",transform:"translateX(-50%)"}}>
-                    {m.label}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Today line + rows */}
-          <div style={{position:"relative"}}>
-
-            {/* Today vertical line */}
-            {todayPct>=0&&todayPct<=100&&(
-              <div style={{position:"absolute",
-                left:"calc("+LABEL_W+"px + "+todayPct+"% * (100% - "+LABEL_W+"px) / 100)",
-                top:0,bottom:0,width:2,background:"rgba(255,100,100,0.5)",zIndex:2,pointerEvents:"none"}}>
-                <span style={{position:"absolute",top:-18,left:-14,fontSize:10,color:"#E24B4A",fontWeight:600,whiteSpace:"nowrap"}}>TODAY</span>
-              </div>
-            )}
-
-            {/* Group by project */}
+          {/* Row labels */}
+          <div style={{width:LABEL_W,minWidth:LABEL_W,flexShrink:0}}>
+            {/* Header spacer */}
+            <div style={{height:HEADER_H}}/>
             {projects.map(function(p){
               var pRows=rows.filter(function(r){return r.project.id===p.id;});
               if(!pRows.length)return null;
               return(
-                <div key={p.id} style={{marginBottom:16}}>
-                  {/* Project label */}
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:p.color,display:"inline-block"}}/>
-                    <span style={{fontSize:12,fontWeight:600,color:p.color,textTransform:"uppercase",letterSpacing:0.5}}>{p.name}</span>
+                <div key={p.id}>
+                  {/* Project group header */}
+                  <div style={{height:28,display:"flex",alignItems:"center",paddingRight:12,borderBottom:"1px solid #1a1d27"}}>
+                    <span style={{width:7,height:7,borderRadius:"50%",background:p.color,display:"inline-block",marginRight:6,flexShrink:0}}/>
+                    <span style={{fontSize:11,fontWeight:700,color:p.color,textTransform:"uppercase",letterSpacing:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
                   </div>
-
                   {pRows.map(function(r){
-                    var isOD=r.date<tod()&&!r.sub.done;
-                    var barLeft=pct(r.date);
                     return(
-                      <div key={r.sub.id} style={{display:"flex",alignItems:"center",marginBottom:5,minHeight:32}}>
-                        {/* Label */}
-                        <div style={{width:LABEL_W,minWidth:LABEL_W,paddingRight:12,flexShrink:0}}>
-                          <div style={{fontSize:11,color:"#777",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.task.name}</div>
-                          <div style={{fontSize:12,color:r.sub.done?"#444":(SC[r.sub.status||"pending"]||"#aaa"),
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                            textDecoration:r.sub.done?"line-through":"none"}}>{r.sub.name}</div>
-                        </div>
-                        {/* Bar track */}
-                        <div style={{flex:1,position:"relative",height:28,background:"rgba(255,255,255,0.04)",borderRadius:6}}>
-                          {/* Milestone diamond */}
-                          <div style={{
-                            position:"absolute",
-                            left:"calc("+barLeft+"% - 10px)",
-                            top:"50%",transform:"translateY(-50%)",
-                            width:20,height:20,
-                            background:r.sub.done?"#639922":(isOD?"#E24B4A":p.color),
-                            borderRadius:3,
-                            transform:"translateY(-50%) rotate(45deg)",
-                            transition:"background .2s"
-                          }}/>
-                          {/* Date label */}
-                          <span style={{
-                            position:"absolute",
-                            left:"calc("+barLeft+"% + 14px)",
-                            top:"50%",transform:"translateY(-50%)",
-                            fontSize:10,
-                            color:isOD?"#E24B4A":r.sub.done?"#555":"#888",
-                            whiteSpace:"nowrap",
-                            fontWeight:isOD?600:400
-                          }}>
-                            {new Date(r.date).toLocaleDateString("default",{day:"numeric",month:"short"})}
-                            {isOD?" OVERDUE":""}
-                            {r.sub.done?" ✓":""}
-                          </span>
-                        </div>
+                      <div key={r.sub.id} style={{height:ROW_H,display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:12,borderBottom:"1px solid #1a1a2a"}}>
+                        <div style={{fontSize:10,color:"#555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.task.name}</div>
+                        <div style={{fontSize:12,color:r.sub.done?"#444":(SC[r.sub.status||"pending"]||"#aaa"),
+                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                          textDecoration:r.sub.done?"line-through":"none",fontWeight:500}}>{r.sub.name}</div>
                       </div>
                     );
                   })}
@@ -267,17 +228,98 @@ function GanttView(props){
             })}
           </div>
 
-          {/* Status legend */}
-          <div style={{display:"flex",gap:20,marginTop:24,paddingTop:16,borderTop:"1px solid #2a2d3a",flexWrap:"wrap"}}>
-            <span style={{fontSize:11,color:"#555",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:12,height:12,background:"#639922",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Done
-            </span>
-            <span style={{fontSize:11,color:"#555",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:12,height:12,background:"#E24B4A",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Overdue
-            </span>
-            <span style={{fontSize:11,color:"#555",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:12,height:12,background:"#7F77DD",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Upcoming
-            </span>
+          {/* Grid + bars */}
+          <div style={{flex:1,position:"relative",overflowX:"visible"}}>
+            {/* Month header row */}
+            <div style={{display:"flex",height:22,borderBottom:"1px solid #2a2d3a",background:"#13151e"}}>
+              {monthGroups.map(function(mg,i){
+                return(
+                  <div key={i} style={{width:mg.count*COL_W,flexShrink:0,borderRight:"1px solid #2a2d3a",
+                    display:"flex",alignItems:"center",paddingLeft:6,fontSize:11,fontWeight:600,color:"#7F77DD",overflow:"hidden"}}>
+                    {mg.label}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Day header row */}
+            <div style={{display:"flex",height:HEADER_H-22,borderBottom:"1px solid #2a2d3a",background:"#13151e"}}>
+              {days.map(function(d,i){
+                var dStr=d.toISOString().slice(0,10);
+                var isPast=dStr<todayStr;
+                var isToday=dStr===todayStr;
+                var isWeekend=d.getDay()===0||d.getDay()===6;
+                return(
+                  <div key={i} style={{width:COL_W,minWidth:COL_W,flexShrink:0,
+                    borderRight:"1px solid #1a1d27",
+                    background:isToday?"rgba(230,75,74,0.2)":isPast?"rgba(230,50,50,0.06)":isWeekend?"rgba(255,255,255,0.02)":"transparent",
+                    display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1}}>
+                    <span style={{fontSize:9,color:isToday?"#E24B4A":isPast?"#E24B4A66":isWeekend?"#555":"#444",fontWeight:isToday?700:400}}>{dayNames[d.getDay()]}</span>
+                    <span style={{fontSize:11,fontWeight:isToday?700:400,color:isToday?"#E24B4A":isPast?"#E24B4A88":"#666"}}>{d.getDate()}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Row content */}
+            {projects.map(function(p){
+              var pRows=rows.filter(function(r){return r.project.id===p.id;});
+              if(!pRows.length)return null;
+              return(
+                <div key={p.id}>
+                  {/* Project group header row */}
+                  <div style={{display:"flex",height:28,borderBottom:"1px solid #1a1d27",background:"rgba(255,255,255,0.01)"}}>
+                    {days.map(function(d,i){
+                      var dStr=d.toISOString().slice(0,10);
+                      var isPast=dStr<todayStr;
+                      var isToday=dStr===todayStr;
+                      return <div key={i} style={{width:COL_W,minWidth:COL_W,flexShrink:0,
+                        borderRight:"1px solid #1a1a2a",
+                        background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent"}}/>;
+                    })}
+                  </div>
+
+                  {pRows.map(function(r){
+                    var dIdx=dayIndex(r.date);
+                    var isOD=r.date<todayStr&&!r.sub.done;
+                    var diamondColor=r.sub.done?"#639922":isOD?"#E24B4A":p.color;
+                    return(
+                      <div key={r.sub.id} style={{display:"flex",height:ROW_H,position:"relative",borderBottom:"1px solid #1a1a2a"}}>
+                        {/* Day columns */}
+                        {days.map(function(d,i){
+                          var dStr=d.toISOString().slice(0,10);
+                          var isPast=dStr<todayStr;
+                          var isToday=dStr===todayStr;
+                          var isTarget=dStr===r.date;
+                          return(
+                            <div key={i} style={{width:COL_W,minWidth:COL_W,flexShrink:0,height:"100%",
+                              borderRight:"1px solid #1a1a2a",
+                              background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent",
+                              position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              {isTarget&&(
+                                <div style={{width:16,height:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
+                                  boxShadow:"0 0 6px "+diamondColor+"88",zIndex:2}}/>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {/* Date label floating after diamond */}
+                        {(function(){
+                          var left=(dIdx+1)*COL_W;
+                          return(
+                            <div style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",
+                              fontSize:10,color:isOD?"#E24B4A":r.sub.done?"#444":"#777",
+                              whiteSpace:"nowrap",pointerEvents:"none",fontWeight:isOD?600:400,zIndex:3}}>
+                              {isOD?" OVERDUE":r.sub.done?" ✓":""}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
