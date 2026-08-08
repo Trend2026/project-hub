@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Project Hub</title>
+<link rel="manifest" href="./manifest.json"/>
+<meta name="theme-color" content="#111318"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Proj Hub"/>
+<link rel="apple-touch-icon" href="./apple-touch-icon.png"/>
+<link rel="icon" href="./icon-192.png"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -62,6 +70,17 @@ function tod(){return new Date().toISOString().slice(0,10);}
 function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
+function useIsMobile(){
+  var mq=window.matchMedia("(max-width:768px)");
+  var r=React.useState(mq.matches);var val=r[0],setVal=r[1];
+  React.useEffect(function(){
+    function handler(e){setVal(e.matches);}
+    if(mq.addEventListener)mq.addEventListener("change",handler);else mq.addListener(handler);
+    return function(){if(mq.removeEventListener)mq.removeEventListener("change",handler);else mq.removeListener(handler);};
+  },[]);
+  return val;
+}
+
 function AutoTA(props){
   var ref=React.useRef(null);
   React.useEffect(function(){
@@ -98,6 +117,7 @@ function SBadge(props){
 function GanttView(props){
   var projects=props.projects;
   var goHome=props.goHome;
+  var isMobile=useIsMobile();
 
   var rows=[];
   projects.forEach(function(p){
@@ -112,12 +132,12 @@ function GanttView(props){
   if(rows.length===0){
     return(
       <div style={{minHeight:"100vh",background:"#111318",paddingBottom:40}}>
-        <div style={{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",gap:12}}>
+        <div style={{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:isMobile?"12px 14px":"14px 24px",display:"flex",flexWrap:"wrap",alignItems:"center",gap:10}}>
           <button onClick={goHome} style={{background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"}}>Back</button>
           <button onClick={goHome} style={{background:"transparent",color:"#7F77DD",border:"1px solid #7F77DD",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"}}>Dashboard</button>
           <span style={{fontWeight:600,fontSize:17,color:"#fff"}}>Timeline</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,marginTop:80}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,marginTop:80,padding:"0 20px",textAlign:"center"}}>
           <div style={{fontSize:32}}>📅</div>
           <div style={{fontSize:15,color:"#555"}}>No subtasks with dates yet.</div>
           <div style={{fontSize:13,color:"#444"}}>Add dates to subtasks inside your projects to see them here.</div>
@@ -145,9 +165,9 @@ function GanttView(props){
   }
   var totalDays=days.length;
 
-  var LABEL_W=220;
-  var COL_W=44; // px per day
-  var ROW_H=40;
+  var LABEL_W=isMobile?120:220;
+  var COL_W=isMobile?32:44; // px per day
+  var ROW_H=isMobile?48:40;
   var HEADER_H=56;
 
   var dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -173,7 +193,7 @@ function GanttView(props){
   return(
     <div style={{minHeight:"100vh",background:"#111318",paddingBottom:40}}>
       {/* Top bar */}
-      <div style={{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",gap:12}}>
+      <div style={{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:isMobile?"12px 14px":"14px 24px",display:"flex",flexWrap:"wrap",alignItems:"center",gap:10}}>
         <button onClick={goHome} style={{background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"}}>Back</button>
         <button onClick={goHome} style={{background:"transparent",color:"#7F77DD",border:"1px solid #7F77DD",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"}}>Dashboard</button>
         <span style={{fontWeight:600,fontSize:17,color:"#fff"}}>Timeline</span>
@@ -181,7 +201,7 @@ function GanttView(props){
       </div>
 
       {/* Legend */}
-      <div style={{display:"flex",gap:20,flexWrap:"wrap",padding:"12px 24px",borderBottom:"1px solid #1a1d27",alignItems:"center"}}>
+      <div style={{display:"flex",gap:isMobile?12:20,flexWrap:"wrap",padding:isMobile?"10px 14px":"12px 24px",borderBottom:"1px solid #1a1d27",alignItems:"center"}}>
         {projects.filter(function(p){return p.tasks.some(function(t){return(t.subtasks||[]).some(function(s){return s.date;});});}).map(function(p){
           return <div key={p.id} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#aaa"}}>
             <span style={{width:10,height:10,borderRadius:"50%",background:p.color,display:"inline-block"}}/>{p.name}
@@ -196,7 +216,7 @@ function GanttView(props){
       </div>
 
       {/* Scrollable chart area */}
-      <div style={{overflowX:"auto",padding:"0 24px 24px"}}>
+      <div style={{overflowX:"auto",padding:isMobile?"0 14px 20px":"0 24px 24px",WebkitOverflowScrolling:"touch"}}>
         <div style={{display:"flex",minWidth:LABEL_W+chartW}}>
 
           {/* Row labels */}
@@ -330,6 +350,7 @@ function GanttView(props){
 // ── MAIN APP ─────────────────────────────────────────────────
 function App(){
   var useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback;
+  var isMobile=useIsMobile();
 
   var r1=useState([]);    var projects=r1[0];   var setProjects=r1[1];
   var r2=useState(true);  var loading=r2[0];    var setLoading=r2[1];
@@ -539,18 +560,18 @@ function App(){
   }).length;
 
   var st={
-    topBar:{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:"14px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"},
+    topBar:{background:"#16181f",borderBottom:"1px solid #2a2d3a",padding:isMobile?"12px 14px":"14px 24px",display:"flex",flexWrap:"wrap",rowGap:10,alignItems:"center",justifyContent:"space-between"},
     sCard:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,padding:"12px 18px",minWidth:110},
     pCard:{background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:14,padding:"18px",cursor:"grab",transition:"border-color .2s,transform .15s"},
     btn:{background:"#7F77DD",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:13,fontWeight:500,cursor:"pointer"},
     btnSm:{background:"transparent",color:"#aaa",border:"1px solid #333",borderRadius:7,padding:"5px 12px",fontSize:12,cursor:"pointer"},
     inp:{background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%",boxSizing:"border-box"},
     sel:{background:"#111318",border:"1px solid #333",borderRadius:8,padding:"8px 12px",color:"#eee",fontSize:13,width:"100%"},
-    modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100},
-    mbox:{background:"#1a1d27",border:"1px solid #2d3045",borderRadius:16,padding:"24px",width:400,maxWidth:"95vw"},
+    modal:{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",zIndex:100},
+    mbox:{background:"#1a1d27",border:"1px solid #2d3045",borderRadius:isMobile?"16px 16px 0 0":16,padding:"20px",width:isMobile?"100%":400,maxWidth:isMobile?"100vw":"95vw",maxHeight:isMobile?"85vh":"none",overflowY:isMobile?"auto":"visible",boxSizing:"border-box"},
     lbl:{fontSize:12,color:"#888",marginBottom:4,display:"block"},
     sec:{fontSize:13,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.8,marginBottom:12},
-    trow:{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:9,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
+    trow:{display:"flex",alignItems:"center",gap:isMobile?6:8,padding:isMobile?"9px 8px":"9px 12px",borderRadius:9,border:"1px solid #222",cursor:"pointer",userSelect:"none"}
   };
 
   if(loading)return(
@@ -607,13 +628,13 @@ function App(){
       {/* HOME */}
       {view==="home"&&(
         <div>
-          <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:"16px 24px 0"}}>
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:isMobile?"14px 14px 0":"16px 24px 0"}}>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
           </div>
 
           {/* SEARCH */}
-          <div style={{padding:"16px 24px 0",position:"relative"}}>
+          <div style={{padding:isMobile?"14px 14px 0":"16px 24px 0",position:"relative"}}>
             <div style={{position:"relative",maxWidth:500}}>
               <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"#555",fontSize:14,pointerEvents:"none"}}>🔍</span>
               <input value={search}
@@ -628,7 +649,7 @@ function App(){
                 style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:18}}>×</button>}
             </div>
             {search.trim().length>1&&(
-              <div style={{position:"absolute",top:"calc(100% + 4px)",left:24,width:500,maxWidth:"calc(100vw - 48px)",
+              <div style={{position:"absolute",top:"calc(100% + 4px)",left:isMobile?14:24,width:isMobile?"calc(100vw - 28px)":500,maxWidth:isMobile?"calc(100vw - 28px)":"calc(100vw - 48px)",
                 background:"#1a1d27",border:"1px solid #2a2d3a",borderRadius:10,zIndex:50,maxHeight:380,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.5)"}}>
                 {searchResults.length===0&&(
                   <div style={{padding:16,fontSize:13,color:"#555",textAlign:"center"}}>No results found for "{search}"</div>
@@ -667,7 +688,7 @@ function App(){
           </div>
 
           {/* PROJECT GRID */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:16,padding:"20px 24px 0"}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:isMobile?12:16,padding:isMobile?"18px 14px 0":"20px 24px 0"}}>
             {projects.map(function(p,idx){
               var isOverdue=p.targetDate&&p.targetDate<tod();
               var inProgressTasks=p.tasks.filter(function(t){
@@ -774,8 +795,8 @@ function App(){
 
       {/* DETAIL */}
       {view==="detail"&&proj&&(
-        <div style={{display:"flex"}}>
-          <div style={{flex:1,padding:"20px 24px",minWidth:0}}>
+        <div style={{display:"flex",flexDirection:isMobile?"column":"row"}}>
+          <div style={{flex:1,padding:isMobile?"16px 14px":"20px 24px",minWidth:0}}>
             <div style={st.sec}>Tasks</div>
             {proj.tasks.length===0&&<div style={{color:"#555",fontSize:13}}>No tasks yet.</div>}
             {proj.tasks.map(function(t,idx){
@@ -819,16 +840,16 @@ function App(){
                             style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,
                               border:"1px solid "+(subOverdue?"#E24B4A44":"#1a1a2a"),padding:"6px 10px"}}
                           >
-                            <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                            <div style={{display:"flex",alignItems:"flex-start",gap:8,flexWrap:isMobile?"wrap":"nowrap"}}>
                               <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
                               <input type="checkbox" checked={s.done||false}
                                 onChange={function(e){updSub(t.id,s.id,{done:e.target.checked});}}
                                 style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
                               <AutoTA value={s.name}
                                 onChange={function(e){updSub(t.id,s.id,{name:e.target.value});}}
-                                style={{flex:1,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
+                                style={{flex:1,minWidth:isMobile?"120px":0,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
-                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1}}>
+                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1,marginLeft:isMobile?28:0,width:isMobile?"100%":"auto"}}>
                                 <input type="date" value={s.date||""}
                                   onChange={function(e){updSub(t.id,s.id,{date:e.target.value});}}
                                   style={{background:"#111318",border:"1px solid "+(subOverdue?"#E24B4A":"#2a2d3a"),borderRadius:6,
@@ -854,7 +875,7 @@ function App(){
           </div>
 
           {/* SIDEBAR */}
-          <div style={{width:"30%",minWidth:200,borderLeft:"1px solid #2a2d3a",background:"#13151e",padding:"20px 14px",overflowY:"auto",maxHeight:"calc(100vh - 53px)",position:"sticky",top:53}}>
+          <div style={{width:isMobile?"100%":"30%",minWidth:isMobile?0:200,borderLeft:isMobile?"none":"1px solid #2a2d3a",borderTop:isMobile?"1px solid #2a2d3a":"none",background:"#13151e",padding:isMobile?"16px 14px":"20px 14px",overflowY:isMobile?"visible":"auto",maxHeight:isMobile?"none":"calc(100vh - 53px)",position:isMobile?"static":"sticky",top:isMobile?"auto":53}}>
             <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
             {projects.map(function(p){
               var isAct=p.id===aid;
@@ -899,19 +920,14 @@ function App(){
             <div style={{marginBottom:12}}><label style={st.lbl}>Target Date</label>
               <input type="date" style={Object.assign({},st.inp,{colorScheme:"dark"})} value={np.targetDate}
                 onChange={function(e){setNp(function(p){return Object.assign({},p,{targetDate:e.target.value});});}}/></div>
-            <div style={{marginBottom:12,display:"flex",gap:12}}>
-              <div style={{flex:1}}><label style={st.lbl}>Status</label>
-                <select style={st.sel} value={np.status} onChange={function(e){setNp(function(p){return Object.assign({},p,{status:e.target.value});});}}>
-                  {Object.keys(PSC).map(function(k){return <option key={k} value={k}>{PSC[k].label}</option>;})}
-                </select></div>
-              <div><label style={st.lbl}>Colour</label>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                  {palette.map(function(c){return(
-                    <div key={c} onClick={function(){setNp(function(p){return Object.assign({},p,{color:c});});}}
-                      style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",
-                        border:np.color===c?"2px solid #7F77DD":"2px solid rgba(255,255,255,0.1)"}}/>
-                  );})}
-                </div></div>
+            <div style={{marginBottom:12}}><label style={st.lbl}>Colour</label>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                {palette.map(function(c){return(
+                  <div key={c} onClick={function(){setNp(function(p){return Object.assign({},p,{color:c});});}}
+                    style={{width:22,height:22,borderRadius:"50%",background:c,cursor:"pointer",
+                      border:np.color===c?"2px solid #7F77DD":"2px solid rgba(255,255,255,0.1)"}}/>
+                );})}
+              </div>
             </div>
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:20}}>
               <button style={st.btnSm} onClick={function(){setAddPOpen(false);}}>Cancel</button>
@@ -954,7 +970,7 @@ function App(){
       {/* IMPORT */}
       {impOpen&&(
         <div style={st.modal} onClick={function(){setImpOpen(false);setImpPrev(null);setImpErr("");}}>
-          <div style={Object.assign({},st.mbox,{width:500,maxHeight:"80vh",overflowY:"auto"})} onClick={function(e){e.stopPropagation();}}>
+          <div style={Object.assign({},st.mbox,{width:isMobile?"100%":500,maxHeight:"80vh",overflowY:"auto"})} onClick={function(e){e.stopPropagation();}}>
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:6}}>Import from Trello</div>
             <div style={{fontSize:12,color:"#666",marginBottom:18,lineHeight:1.6}}>In Trello: open your board → Show Menu → More → Print and Export → Export as JSON. Then select the file below.</div>
             {!impPrev?(
@@ -996,7 +1012,7 @@ function App(){
       {/* COLOUR PICKER */}
       {editColorId&&(
         <div style={st.modal} onClick={function(){setEditColorId(null);}}>
-          <div style={Object.assign({},st.mbox,{width:360})} onClick={function(e){e.stopPropagation();}}>
+          <div style={Object.assign({},st.mbox,{width:isMobile?"100%":360})} onClick={function(e){e.stopPropagation();}}>
             <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:16}}>Change Project Colour</div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
               {palette.map(function(c){
@@ -1037,7 +1053,7 @@ function App(){
       {/* BACKUP REMINDER */}
       {showBkup&&(
         <div style={st.modal}>
-          <div style={Object.assign({},st.mbox,{width:340,textAlign:"center"})}>
+          <div style={Object.assign({},st.mbox,{width:isMobile?"100%":340,textAlign:"center"})}>
             <div style={{fontSize:32,marginBottom:12}}>💾</div>
             <div style={{fontWeight:600,fontSize:16,color:"#fff",marginBottom:8}}>Time to Back Up!</div>
             <div style={{fontSize:13,color:"#888",marginBottom:20,lineHeight:1.6}}>It's been over 3 hours since your last backup. Download a copy now to keep your data safe.</div>
@@ -1052,7 +1068,7 @@ function App(){
       {/* DELETE */}
       {delConf&&(
         <div style={st.modal} onClick={function(){setDelConf(null);}}>
-          <div style={Object.assign({},st.mbox,{width:320})} onClick={function(e){e.stopPropagation();}}>
+          <div style={Object.assign({},st.mbox,{width:isMobile?"100%":320})} onClick={function(e){e.stopPropagation();}}>
             <div style={{fontWeight:600,fontSize:15,color:"#fff",marginBottom:10}}>Delete Project?</div>
             <div style={{fontSize:13,color:"#888",marginBottom:20}}>This will permanently remove the project and all its tasks.</div>
             <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
@@ -1068,6 +1084,12 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(e){console.warn("SW registration failed",e);});
+  });
+}
 </script>
 </body>
 </html>
