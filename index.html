@@ -373,6 +373,7 @@ function App(){
   var r19=useState("#7F77DD");var newColor=r19[0];var setNewColor=r19[1];
   var r20=useState("");   var search=r20[0];    var setSearch=r20[1];
   var r21=useState(false);var searchFocused=r21[0];var setSearchFocused=r21[1];
+  var r22=useState(function(){return lsGet("timelinePos",9999);});var timelinePos=r22[0];var setTimelinePos=r22[1];
 
   var dragP=useRef(null);var dragPO=useRef(null);
   var dragT=useRef(null);var dragTO=useRef(null);
@@ -425,6 +426,11 @@ function App(){
   function goHome(){setView("home");setAid(null);setActiveTask(null);}
   function openGantt(){setView("gantt");}
 
+  // Combined home-grid slots: project cards + the Timeline card, in one draggable sequence.
+  var clampedTL=Math.max(0,Math.min(timelinePos,projects.length));
+  var slots=projects.map(function(p,i){return {type:"project",p:p,pIdx:i};});
+  slots.splice(clampedTL,0,{type:"gantt"});
+
   function pdStart(e,i){dragP.current=i;e.dataTransfer.effectAllowed="move";}
   function pdEnter(e,i){dragPO.current=i;e.currentTarget.classList.add("drag-over");}
   function pdLeave(e){e.currentTarget.classList.remove("drag-over");}
@@ -433,8 +439,11 @@ function App(){
     e.currentTarget.classList.remove("drag-over");
     var f=dragP.current,t=dragPO.current;dragP.current=null;dragPO.current=null;
     if(f===null||t===null||f===t)return;
-    var u=projects.slice();u.splice(t,0,u.splice(f,1)[0]);
-    setProjects(u);persist(u);
+    var s=slots.slice();s.splice(t,0,s.splice(f,1)[0]);
+    var newProjects=s.filter(function(x){return x.type==="project";}).map(function(x){return x.p;});
+    var newGanttIdx=s.findIndex(function(x){return x.type==="gantt";});
+    setProjects(newProjects);persist(newProjects);
+    setTimelinePos(newGanttIdx);lsSet("timelinePos",newGanttIdx);
   }
   function tdStart(e,i){dragT.current=i;e.dataTransfer.effectAllowed="move";}
   function tdEnter(e,i){dragTO.current=i;e.currentTarget.classList.add("drag-over");}
@@ -689,7 +698,38 @@ function App(){
 
           {/* PROJECT GRID */}
           <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:isMobile?12:16,padding:isMobile?"18px 14px 0":"20px 24px 0"}}>
-            {projects.map(function(p,idx){
+            {slots.map(function(slot,idx){
+
+              if(slot.type==="gantt"){
+                return(
+                  <div key="gantt-card" draggable={true}
+                    onDragStart={function(e){pdStart(e,idx);}}
+                    onDragEnter={function(e){pdEnter(e,idx);}}
+                    onDragLeave={pdLeave} onDragOver={pdOver} onDrop={pdDrop}
+                    onClick={openGantt}
+                    style={{background:"#1a1d27",border:"1px dashed #2a2d3a",borderRadius:14,padding:"18px",
+                      cursor:"pointer",transition:"border-color .2s,transform .15s",
+                      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:180,gap:12}}
+                    onMouseEnter={function(e){e.currentTarget.style.borderColor="#7F77DD";e.currentTarget.style.transform="translateY(-2px)";}}
+                    onMouseLeave={function(e){e.currentTarget.style.borderColor="#2a2d3a";e.currentTarget.style.transform="";}}
+                  >
+                    <span style={{alignSelf:"flex-start",color:"#444",fontSize:12,cursor:"grab"}}>⠿</span>
+                    <div style={{fontSize:32,marginTop:-8}}>📅</div>
+                    <div style={{fontWeight:600,fontSize:15,color:"#7F77DD"}}>Timeline</div>
+                    <div style={{fontSize:12,color:"#555",textAlign:"center",lineHeight:1.5}}>
+                      Gantt view of all<br/>scheduled subtasks
+                    </div>
+                    {datedSubCount>0&&(
+                      <div style={{fontSize:11,color:"#7F77DD",background:"rgba(127,119,221,0.1)",
+                        padding:"3px 10px",borderRadius:99,border:"1px solid rgba(127,119,221,0.3)"}}>
+                        {datedSubCount} scheduled
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              var p=slot.p;
               var isOverdue=p.targetDate&&p.targetDate<tod();
               var inProgressTasks=p.tasks.filter(function(t){
                 return(t.subtasks||[]).some(function(s){return s.status==="development"&&!s.done;});
@@ -767,28 +807,6 @@ function App(){
                 </div>
               );
             })}
-
-            {/* GANTT CARD */}
-            <div
-              onClick={openGantt}
-              style={{background:"#1a1d27",border:"1px dashed #2a2d3a",borderRadius:14,padding:"18px",
-                cursor:"pointer",transition:"border-color .2s,transform .15s",
-                display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:180,gap:12}}
-              onMouseEnter={function(e){e.currentTarget.style.borderColor="#7F77DD";e.currentTarget.style.transform="translateY(-2px)";}}
-              onMouseLeave={function(e){e.currentTarget.style.borderColor="#2a2d3a";e.currentTarget.style.transform="";}}
-            >
-              <div style={{fontSize:32}}>📅</div>
-              <div style={{fontWeight:600,fontSize:15,color:"#7F77DD"}}>Timeline</div>
-              <div style={{fontSize:12,color:"#555",textAlign:"center",lineHeight:1.5}}>
-                Gantt view of all<br/>scheduled subtasks
-              </div>
-              {datedSubCount>0&&(
-                <div style={{fontSize:11,color:"#7F77DD",background:"rgba(127,119,221,0.1)",
-                  padding:"3px 10px",borderRadius:99,border:"1px solid rgba(127,119,221,0.3)"}}>
-                  {datedSubCount} scheduled
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
