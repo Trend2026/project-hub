@@ -166,7 +166,6 @@ function GanttView(props){
   var totalDays=days.length;
 
   var LABEL_W=isMobile?120:220;
-  var COL_W=isMobile?32:44; // px per day
   var ROW_H=isMobile?48:40;
   var HEADER_H=56;
 
@@ -188,7 +187,8 @@ function GanttView(props){
     monthGroups[monthGroups.length-1].count++;
   });
 
-  var chartW=totalDays*COL_W;
+  var chartW=0; // no longer used for scroll width — chart now fills available width fluidly
+  var dayPct=100/totalDays; // % width per day column so the whole chart always fits on screen
 
   return(
     <div style={{minHeight:"100vh",background:"#111318",paddingBottom:40}}>
@@ -215,9 +215,9 @@ function GanttView(props){
         </div>
       </div>
 
-      {/* Scrollable chart area */}
-      <div style={{overflowX:"auto",padding:isMobile?"0 14px 20px":"0 24px 24px",WebkitOverflowScrolling:"touch"}}>
-        <div style={{display:"flex",minWidth:LABEL_W+chartW}}>
+      {/* Chart area — fluid width, always fits screen, no horizontal scroll */}
+      <div style={{padding:isMobile?"0 14px 20px":"0 24px 24px"}}>
+        <div style={{display:"flex",width:"100%"}}>
 
           {/* Row labels */}
           <div style={{width:LABEL_W,minWidth:LABEL_W,flexShrink:0}}>
@@ -227,17 +227,17 @@ function GanttView(props){
               var pRows=rows.filter(function(r){return r.project.id===p.id;});
               if(!pRows.length)return null;
               return(
-                <div key={p.id}>
+                <div key={p.id} style={{borderBottom:"2px solid #fff"}}>
                   {/* Project group header */}
                   <div style={{height:28,display:"flex",alignItems:"center",paddingRight:12,borderBottom:"1px solid #1a1d27"}}>
                     <span style={{width:7,height:7,borderRadius:"50%",background:p.color,display:"inline-block",marginRight:6,flexShrink:0}}/>
-                    <span style={{fontSize:11,fontWeight:700,color:p.color,textTransform:"uppercase",letterSpacing:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                    <span style={{fontSize:13.2,fontWeight:700,color:p.color,textTransform:"uppercase",letterSpacing:0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
                   </div>
                   {pRows.map(function(r){
                     return(
                       <div key={r.sub.id} style={{height:ROW_H,display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:12,borderBottom:"1px solid #1a1a2a"}}>
-                        <div style={{fontSize:10,color:"#555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.task.name}</div>
-                        <div style={{fontSize:12,color:r.sub.done?"#444":(SC[r.sub.status||"pending"]||"#aaa"),
+                        <div style={{fontSize:12,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.task.name}</div>
+                        <div style={{fontSize:9.6,color:r.sub.done?"#444":(SC[r.sub.status||"pending"]||"#aaa"),
                           overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                           textDecoration:r.sub.done?"line-through":"none",fontWeight:500}}>{r.sub.name}</div>
                       </div>
@@ -254,8 +254,8 @@ function GanttView(props){
             <div style={{display:"flex",height:22,borderBottom:"1px solid #2a2d3a",background:"#13151e"}}>
               {monthGroups.map(function(mg,i){
                 return(
-                  <div key={i} style={{width:mg.count*COL_W,flexShrink:0,borderRight:"1px solid #2a2d3a",
-                    display:"flex",alignItems:"center",paddingLeft:6,fontSize:11,fontWeight:600,color:"#7F77DD",overflow:"hidden"}}>
+                  <div key={i} style={{width:(mg.count*dayPct)+"%",flexShrink:0,borderRight:"1px solid #2a2d3a",
+                    display:"flex",alignItems:"center",paddingLeft:6,fontSize:11,fontWeight:700,color:"#7F77DD",overflow:"hidden"}}>
                     {mg.label}
                   </div>
                 );
@@ -270,12 +270,12 @@ function GanttView(props){
                 var isToday=dStr===todayStr;
                 var isWeekend=d.getDay()===0||d.getDay()===6;
                 return(
-                  <div key={i} style={{width:COL_W,minWidth:COL_W,flexShrink:0,
+                  <div key={i} style={{width:dayPct+"%",flexShrink:0,
                     borderRight:"1px solid #1a1d27",
                     background:isToday?"rgba(230,75,74,0.2)":isPast?"rgba(230,50,50,0.06)":isWeekend?"rgba(255,255,255,0.02)":"transparent",
                     display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1}}>
-                    <span style={{fontSize:9,color:isToday?"#E24B4A":isPast?"#E24B4A66":isWeekend?"#555":"#444",fontWeight:isToday?700:400}}>{dayNames[d.getDay()]}</span>
-                    <span style={{fontSize:11,fontWeight:isToday?700:400,color:isToday?"#E24B4A":isPast?"#E24B4A88":"#666"}}>{d.getDate()}</span>
+                    <span style={{fontSize:9,fontWeight:700,color:isToday?"#E24B4A":isPast?"#E24B4A66":isWeekend?"#555":"#444"}}>{dayNames[d.getDay()]}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:isToday?"#E24B4A":isPast?"#E24B4A88":"#666"}}>{d.getDate()}</span>
                   </div>
                 );
               })}
@@ -286,14 +286,14 @@ function GanttView(props){
               var pRows=rows.filter(function(r){return r.project.id===p.id;});
               if(!pRows.length)return null;
               return(
-                <div key={p.id}>
+                <div key={p.id} style={{borderBottom:"2px solid #fff"}}>
                   {/* Project group header row */}
                   <div style={{display:"flex",height:28,borderBottom:"1px solid #1a1d27",background:"rgba(255,255,255,0.01)"}}>
                     {days.map(function(d,i){
                       var dStr=d.toISOString().slice(0,10);
                       var isPast=dStr<todayStr;
                       var isToday=dStr===todayStr;
-                      return <div key={i} style={{width:COL_W,minWidth:COL_W,flexShrink:0,
+                      return <div key={i} style={{width:dayPct+"%",flexShrink:0,
                         borderRight:"1px solid #1a1a2a",
                         background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent"}}/>;
                     })}
@@ -312,7 +312,7 @@ function GanttView(props){
                           var isToday=dStr===todayStr;
                           var isTarget=dStr===r.date;
                           return(
-                            <div key={i} style={{width:COL_W,minWidth:COL_W,flexShrink:0,height:"100%",
+                            <div key={i} style={{width:dayPct+"%",flexShrink:0,height:"100%",
                               borderRight:"1px solid #1a1a2a",
                               background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent",
                               position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -325,7 +325,7 @@ function GanttView(props){
                         })}
                         {/* Date label floating after diamond */}
                         {(function(){
-                          var left=(dIdx+1)*COL_W;
+                          var left=((dIdx+1)*dayPct)+"%";
                           return(
                             <div style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",
                               fontSize:10,color:isOD?"#E24B4A":r.sub.done?"#444":"#777",
