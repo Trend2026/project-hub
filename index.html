@@ -67,6 +67,15 @@ var SC={development:"#fe203d",pending:"#F6B53C",active:"#378ADD",published:"#1D9
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function tod(){return new Date().toISOString().slice(0,10);}
+function nextOccurrence(dateStr,freq){
+  var d=new Date(dateStr+"T00:00:00");
+  if(freq==="weekly")d.setDate(d.getDate()+7);
+  else d.setMonth(d.getMonth()+1);
+  return d.toISOString().slice(0,10);
+}
+function daysUntil(dateStr){
+  return Math.round((new Date(dateStr+"T00:00:00")-new Date(tod()+"T00:00:00"))/86400000);
+}
 function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
@@ -120,10 +129,30 @@ function GanttView(props){
   var isMobile=useIsMobile();
 
   var rows=[];
+  var RECUR_HORIZON_DAYS=180; // show recurring subtasks up to 6 months ahead
+  var horizonDate=new Date(new Date(tod()+"T00:00:00").getTime()+RECUR_HORIZON_DAYS*86400000).toISOString().slice(0,10);
   projects.forEach(function(p){
     p.tasks.forEach(function(t){
       (t.subtasks||[]).forEach(function(s){
-        if(s.date) rows.push({project:p,task:t,sub:s,date:s.date});
+        if(!s.date)return;
+        if(!s.recurring){
+          rows.push({project:p,task:t,sub:s,date:s.date});
+          return;
+        }
+        // Recurring: project forward occurrences from the anchor date out to the horizon.
+        var occDate=s.date;
+        var guard=0;
+        while(occDate<=horizonDate&&guard<260){
+          var isAnchor=occDate===s.date;
+          rows.push({
+            project:p,task:t,
+            sub:isAnchor?s:Object.assign({},s,{id:s.id+"-occ-"+guard,done:false}),
+            date:occDate,
+            isRecurringInstance:!isAnchor
+          });
+          occDate=nextOccurrence(occDate,s.recurFreq||"monthly");
+          guard++;
+        }
       });
     });
   });
@@ -238,8 +267,8 @@ function GanttView(props){
                       <div key={r.sub.id} style={{height:ROW_H,display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:12,borderBottom:"1px solid #1a1a2a"}}>
                         <div style={{fontSize:12,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.task.name}</div>
                         <div style={{fontSize:9.6,color:r.sub.done?"#444":(SC[r.sub.status||"pending"]||"#aaa"),
-                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                          textDecoration:r.sub.done?"line-through":"none",fontWeight:500}}>{r.sub.name}</div>
+                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",opacity:r.isRecurringInstance?0.6:1,
+                          textDecoration:r.sub.done?"line-through":"none",fontWeight:500}}>{r.sub.recurring?"🔁 ":""}{r.sub.name}</div>
                       </div>
                     );
                   })}
@@ -317,8 +346,9 @@ function GanttView(props){
                               background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent",
                               position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               {isTarget&&(
-                                <div style={{width:16,height:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
-                                  boxShadow:"0 0 6px "+diamondColor+"88",zIndex:2}}/>
+                                <div style={{width:r.isRecurringInstance?12:16,height:r.isRecurringInstance?12:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
+                                  opacity:r.isRecurringInstance?0.55:1,
+                                  boxShadow:r.isRecurringInstance?"none":"0 0 6px "+diamondColor+"88",zIndex:2}}/>
                               )}
                             </div>
                           );
@@ -734,6 +764,8 @@ function App(){
               var inProgressTasks=p.tasks.filter(function(t){
                 return(t.subtasks||[]).some(function(s){return s.status==="development"&&!s.done;});
               });
+              var dueSoonSubs=p.tasks.flatMap(function(t){return t.subtasks||[];})
+                .filter(function(s){return !s.done&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;});
               return(
                 <div key={p.id} draggable={true}
                   onDragStart={function(e){pdStart(e,idx);}}
@@ -755,7 +787,14 @@ function App(){
                       />
                       <span style={{fontWeight:600,fontSize:15,color:"#fff"}}>{p.name}</span>
                     </div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
+                      {dueSoonSubs.length>0&&(
+                        <span title={dueSoonSubs.map(function(s){return s.name;}).join(", ")}
+                          style={{fontSize:10,fontWeight:700,color:"#E8832A",background:"rgba(232,131,42,0.12)",
+                            border:"1px solid rgba(232,131,42,0.4)",borderRadius:99,padding:"2px 8px",whiteSpace:"nowrap"}}>
+                          🔔 Due Soon{dueSoonSubs.length>1?" ("+dueSoonSubs.length+")":""}
+                        </span>
+                      )}
                       <SBadge status={p.status}/>
                       <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:14,padding:"2px 4px"}}
                         onClick={function(e){e.stopPropagation();setDelConf(p.id);}}>x</button>
@@ -849,6 +888,7 @@ function App(){
                       {subs.map(function(s,sidx){
                         var stColor=s.done?"#555":(SC[s.status||"pending"]||"#E8832A");
                         var subOverdue=s.date&&s.date<tod();
+                        var dueSoon=!subOverdue&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;
                         return(
                           <div key={s.id} draggable={true}
                             onDragStart={function(e){sdStart(e,sidx);}}
@@ -856,22 +896,44 @@ function App(){
                             onDragLeave={sdLeave} onDragOver={sdOver}
                             onDrop={function(e){sdDrop(e,t.id);}}
                             style={{background:"rgba(255,255,255,0.02)",borderRadius:7,marginBottom:4,
-                              border:"1px solid "+(subOverdue?"#E24B4A44":"#1a1a2a"),padding:"6px 10px"}}
+                              border:"1px solid "+(subOverdue?"#E24B4A44":s.recurring?"#7F77DD44":"#1a1a2a"),padding:"6px 10px"}}
                           >
                             <div style={{display:"flex",alignItems:"flex-start",gap:8,flexWrap:isMobile?"wrap":"nowrap"}}>
                               <span style={{color:"#444",fontSize:12,cursor:"grab",flexShrink:0,paddingTop:2}}>⠿</span>
                               <input type="checkbox" checked={s.done||false}
-                                onChange={function(e){updSub(t.id,s.id,{done:e.target.checked});}}
+                                title={s.recurring?"Complete this occurrence — auto-reschedules to next "+s.recurFreq+" date":""}
+                                onChange={function(e){
+                                  if(s.recurring&&e.target.checked){
+                                    updSub(t.id,s.id,{date:nextOccurrence(s.date,s.recurFreq||"monthly"),done:false});
+                                  }else{
+                                    updSub(t.id,s.id,{done:e.target.checked});
+                                  }
+                                }}
                                 style={{cursor:"pointer",accentColor:"#1D9E75",flexShrink:0,marginTop:3}}/>
                               <AutoTA value={s.name}
                                 onChange={function(e){updSub(t.id,s.id,{name:e.target.value});}}
                                 style={{flex:1,minWidth:isMobile?"120px":0,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
-                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1,marginLeft:isMobile?28:0,width:isMobile?"100%":"auto"}}>
+                              <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1,marginLeft:isMobile?28:0,width:isMobile?"100%":"auto",flexWrap:"wrap"}}>
+                                <button title={s.recurring?"Recurring "+s.recurFreq+" — click to turn off":"Make this subtask recurring"}
+                                  onClick={function(){updSub(t.id,s.id,{recurring:!s.recurring,recurFreq:s.recurFreq||"monthly"});}}
+                                  style={{background:s.recurring?"rgba(127,119,221,0.15)":"transparent",
+                                    border:"1px solid "+(s.recurring?"#7F77DD":"#2a2d3a"),borderRadius:6,
+                                    padding:"2px 6px",fontSize:11,color:s.recurring?"#7F77DD":"#555",cursor:"pointer",lineHeight:1.4}}>
+                                  🔁
+                                </button>
+                                {s.recurring&&(
+                                  <select value={s.recurFreq||"monthly"}
+                                    onChange={function(e){updSub(t.id,s.id,{recurFreq:e.target.value});}}
+                                    style={{background:"#111318",border:"1px solid #7F77DD",borderRadius:6,padding:"2px 6px",fontSize:11,color:"#7F77DD",cursor:"pointer",outline:"none"}}>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                  </select>
+                                )}
                                 <input type="date" value={s.date||""}
                                   onChange={function(e){updSub(t.id,s.id,{date:e.target.value});}}
-                                  style={{background:"#111318",border:"1px solid "+(subOverdue?"#E24B4A":"#2a2d3a"),borderRadius:6,
-                                    padding:"2px 6px",fontSize:11,color:subOverdue?"#E24B4A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
+                                  style={{background:"#111318",border:"1px solid "+(subOverdue?"#E24B4A":dueSoon?"#E8832A":"#2a2d3a"),borderRadius:6,
+                                    padding:"2px 6px",fontSize:11,color:subOverdue?"#E24B4A":dueSoon?"#E8832A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
                                 />
                                 <select value={s.status||"pending"}
                                   onChange={function(e){updSub(t.id,s.id,{status:e.target.value});}}
