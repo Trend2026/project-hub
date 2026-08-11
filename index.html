@@ -129,8 +129,8 @@ function GanttView(props){
   var isMobile=useIsMobile();
 
   var rows=[];
-  var RECUR_HORIZON_DAYS=180; // show recurring subtasks up to 6 months ahead
-  var horizonDate=new Date(new Date(tod()+"T00:00:00").getTime()+RECUR_HORIZON_DAYS*86400000).toISOString().slice(0,10);
+  var horizonD=new Date(tod()+"T00:00:00");horizonD.setMonth(horizonD.getMonth()+1);
+  var horizonDate=horizonD.toISOString().slice(0,10); // show recurring subtasks up to 1 month ahead
   projects.forEach(function(p){
     p.tasks.forEach(function(t){
       (t.subtasks||[]).forEach(function(s){
