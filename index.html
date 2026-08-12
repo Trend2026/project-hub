@@ -135,6 +135,7 @@ function GanttView(props){
     p.tasks.forEach(function(t){
       (t.subtasks||[]).forEach(function(s){
         if(!s.date)return;
+        if(s.status!=="development"||s.done)return; // Timeline mirrors the dashboard's "In Progress" view — only Development-status items appear
         if(!s.recurring){
           rows.push({project:p,task:t,sub:s,date:s.date});
           return;
@@ -765,7 +766,7 @@ function App(){
                 return(t.subtasks||[]).some(function(s){return s.status==="development"&&!s.done;});
               });
               var dueSoonSubs=p.tasks.flatMap(function(t){return t.subtasks||[];})
-                .filter(function(s){return !s.done&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;});
+                .filter(function(s){return s.status==="development"&&!s.done&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;});
               return(
                 <div key={p.id} draggable={true}
                   onDragStart={function(e){pdStart(e,idx);}}
@@ -887,8 +888,8 @@ function App(){
                       {subs.length===0&&<div style={{fontSize:12,color:"#555",fontStyle:"italic",padding:"6px 0"}}>No subtasks yet — click +Sub to add one.</div>}
                       {subs.map(function(s,sidx){
                         var stColor=s.done?"#555":(SC[s.status||"pending"]||"#E8832A");
-                        var subOverdue=s.date&&s.date<tod();
-                        var dueSoon=!subOverdue&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;
+                        var subOverdue=s.status==="development"&&s.date&&s.date<tod();
+                        var dueSoon=!subOverdue&&s.status==="development"&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;
                         return(
                           <div key={s.id} draggable={true}
                             onDragStart={function(e){sdStart(e,sidx);}}
@@ -915,26 +916,30 @@ function App(){
                                 style={{flex:1,minWidth:isMobile?"120px":0,background:"transparent",border:"none",color:stColor,fontSize:12,outline:"none",textDecoration:s.done?"line-through":"none",lineHeight:1.5,padding:0}}
                               />
                               <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0,paddingTop:1,marginLeft:isMobile?28:0,width:isMobile?"100%":"auto",flexWrap:"wrap"}}>
-                                <button title={s.recurring?"Recurring "+s.recurFreq+" — click to turn off":"Make this subtask recurring"}
-                                  onClick={function(){updSub(t.id,s.id,{recurring:!s.recurring,recurFreq:s.recurFreq||"monthly"});}}
-                                  style={{background:s.recurring?"rgba(127,119,221,0.15)":"transparent",
-                                    border:"1px solid "+(s.recurring?"#7F77DD":"#2a2d3a"),borderRadius:6,
-                                    padding:"2px 6px",fontSize:11,color:s.recurring?"#7F77DD":"#555",cursor:"pointer",lineHeight:1.4}}>
-                                  🔁
-                                </button>
-                                {s.recurring&&(
-                                  <select value={s.recurFreq||"monthly"}
-                                    onChange={function(e){updSub(t.id,s.id,{recurFreq:e.target.value});}}
-                                    style={{background:"#111318",border:"1px solid #7F77DD",borderRadius:6,padding:"2px 6px",fontSize:11,color:"#7F77DD",cursor:"pointer",outline:"none"}}>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                  </select>
+                                {s.status==="development"&&(
+                                  <React.Fragment>
+                                    <button title={s.recurring?"Recurring "+s.recurFreq+" — click to turn off":"Make this subtask recurring"}
+                                      onClick={function(){updSub(t.id,s.id,{recurring:!s.recurring,recurFreq:s.recurFreq||"monthly"});}}
+                                      style={{background:s.recurring?"rgba(127,119,221,0.15)":"transparent",
+                                        border:"1px solid "+(s.recurring?"#7F77DD":"#2a2d3a"),borderRadius:6,
+                                        padding:"2px 6px",fontSize:11,color:s.recurring?"#7F77DD":"#555",cursor:"pointer",lineHeight:1.4}}>
+                                      🔁
+                                    </button>
+                                    {s.recurring&&(
+                                      <select value={s.recurFreq||"monthly"}
+                                        onChange={function(e){updSub(t.id,s.id,{recurFreq:e.target.value});}}
+                                        style={{background:"#111318",border:"1px solid #7F77DD",borderRadius:6,padding:"2px 6px",fontSize:11,color:"#7F77DD",cursor:"pointer",outline:"none"}}>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                      </select>
+                                    )}
+                                    <input type="date" value={s.date||""}
+                                      onChange={function(e){updSub(t.id,s.id,{date:e.target.value});}}
+                                      style={{background:"#111318",border:"1px solid "+(subOverdue?"#E24B4A":dueSoon?"#E8832A":"#2a2d3a"),borderRadius:6,
+                                        padding:"2px 6px",fontSize:11,color:subOverdue?"#E24B4A":dueSoon?"#E8832A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
+                                    />
+                                  </React.Fragment>
                                 )}
-                                <input type="date" value={s.date||""}
-                                  onChange={function(e){updSub(t.id,s.id,{date:e.target.value});}}
-                                  style={{background:"#111318",border:"1px solid "+(subOverdue?"#E24B4A":dueSoon?"#E8832A":"#2a2d3a"),borderRadius:6,
-                                    padding:"2px 6px",fontSize:11,color:subOverdue?"#E24B4A":dueSoon?"#E8832A":"#888",outline:"none",colorScheme:"dark",cursor:"pointer"}}
-                                />
                                 <select value={s.status||"pending"}
                                   onChange={function(e){updSub(t.id,s.id,{status:e.target.value});}}
                                   style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
