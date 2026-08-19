@@ -126,7 +126,11 @@ function SBadge(props){
 function GanttView(props){
   var projects=props.projects;
   var goHome=props.goHome;
+  var onReviseDate=props.onReviseDate;
   var isMobile=useIsMobile();
+  var useState=React.useState;
+
+  var rEdit=useState(null);var editingRow=rEdit[0];var setEditingRow=rEdit[1]; // key of the row whose date is being revised
 
   var rows=[];
   var horizonD=new Date(tod()+"T00:00:00");horizonD.setMonth(horizonD.getMonth()+1);
@@ -137,10 +141,13 @@ function GanttView(props){
         if(!s.date)return;
         if(s.status!=="development"||s.done)return; // Timeline mirrors the dashboard's "In Progress" view — only Development-status items appear
         if(!s.recurring){
-          rows.push({project:p,task:t,sub:s,date:s.date});
+          rows.push({project:p,task:t,sub:s,anchorSub:s,date:s.date,rowKey:p.id+"|"+t.id+"|"+s.id+"|0"});
           return;
         }
         // Recurring: project forward occurrences from the anchor date out to the horizon.
+        // Every occurrence (anchor or virtual) points back to the real subtask (anchorSub) —
+        // revising the date of ANY diamond in the series edits the actual stored date, since
+        // future occurrences are computed, not separately stored.
         var occDate=s.date;
         var guard=0;
         while(occDate<=horizonDate&&guard<260){
@@ -148,8 +155,10 @@ function GanttView(props){
           rows.push({
             project:p,task:t,
             sub:isAnchor?s:Object.assign({},s,{id:s.id+"-occ-"+guard,done:false}),
+            anchorSub:s,
             date:occDate,
-            isRecurringInstance:!isAnchor
+            isRecurringInstance:!isAnchor,
+            rowKey:p.id+"|"+t.id+"|"+s.id+"|"+guard
           });
           occDate=nextOccurrence(occDate,s.recurFreq||"monthly");
           guard++;
@@ -265,7 +274,7 @@ function GanttView(props){
                   </div>
                   {pRows.map(function(r){
                     return(
-                      <div key={r.sub.id} style={{height:ROW_H,display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:12,borderBottom:"1px solid #1a1a2a"}}>
+                      <div key={r.rowKey} style={{height:ROW_H,display:"flex",flexDirection:"column",justifyContent:"center",paddingRight:12,borderBottom:"1px solid #1a1a2a"}}>
                         <div style={{fontSize:12,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.task.name}</div>
                         <div style={{fontSize:9.6,color:r.sub.done?"#444":(SC[r.sub.status||"pending"]||"#aaa"),
                           overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",opacity:r.isRecurringInstance?0.6:1,
@@ -333,8 +342,9 @@ function GanttView(props){
                     var dIdx=dayIndex(r.date);
                     var isOD=r.date<todayStr&&!r.sub.done;
                     var diamondColor=r.sub.done?"#639922":isOD?"#E24B4A":p.color;
+                    var isEditing=editingRow===r.rowKey;
                     return(
-                      <div key={r.sub.id} style={{display:"flex",height:ROW_H,position:"relative",borderBottom:"1px solid #1a1a2a"}}>
+                      <div key={r.rowKey} style={{display:"flex",height:ROW_H,position:"relative",borderBottom:"1px solid #1a1a2a"}}>
                         {/* Day columns */}
                         {days.map(function(d,i){
                           var dStr=d.toISOString().slice(0,10);
@@ -347,15 +357,19 @@ function GanttView(props){
                               background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent",
                               position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               {isTarget&&(
-                                <div style={{width:r.isRecurringInstance?12:16,height:r.isRecurringInstance?12:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
-                                  opacity:r.isRecurringInstance?0.55:1,
-                                  boxShadow:r.isRecurringInstance?"none":"0 0 6px "+diamondColor+"88",zIndex:2}}/>
+                                <div
+                                  onClick={isOD?function(e){e.stopPropagation();setEditingRow(r.rowKey);}:undefined}
+                                  title={isOD?"Overdue — click to revise the date":""}
+                                  style={{width:r.isRecurringInstance?12:16,height:r.isRecurringInstance?12:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
+                                    opacity:r.isRecurringInstance?0.55:1,cursor:isOD?"pointer":"default",
+                                    outline:isOD?"1px solid rgba(255,255,255,0.25)":"none",outlineOffset:2,
+                                    boxShadow:r.isRecurringInstance?"none":"0 0 6px "+diamondColor+"88",zIndex:2}}/>
                               )}
                             </div>
                           );
                         })}
                         {/* Date label floating after diamond */}
-                        {(function(){
+                        {!isEditing&&(function(){
                           var left=((dIdx+1)*dayPct)+"%";
                           return(
                             <div style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",
@@ -363,6 +377,23 @@ function GanttView(props){
                               whiteSpace:"nowrap",pointerEvents:"none",fontWeight:isOD?600:400,zIndex:3}}>
                               {isOD?" OVERDUE":r.sub.done?" ✓":""}
                             </div>
+                          );
+                        })()}
+                        {/* Inline date-revision control, opened by clicking an overdue diamond */}
+                        {isEditing&&(function(){
+                          var left=((dIdx+1)*dayPct)+"%";
+                          return(
+                            <input type="date" autoFocus defaultValue={r.anchorSub.date}
+                              onClick={function(e){e.stopPropagation();}}
+                              onChange={function(e){
+                                if(e.target.value)onReviseDate(r.project.id,r.task.id,r.anchorSub.id,e.target.value);
+                                setEditingRow(null);
+                              }}
+                              onBlur={function(){setEditingRow(null);}}
+                              style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",zIndex:4,
+                                background:"#1a1d27",border:"1px solid #E24B4A",borderRadius:6,
+                                padding:"2px 6px",fontSize:11,color:"#fff",outline:"none",colorScheme:"dark"}}
+                            />
                           );
                         })()}
                       </div>
@@ -558,6 +589,20 @@ function App(){
     });
     setProjects(u);persist(u);
   }
+  // Project-agnostic subtask updater — used by the Timeline view, which spans all projects at once
+  // and has no single "active project" (aid) context the way the detail view does.
+  function updSubGlobal(pid,tid,sid,changes){
+    var u=projects.map(function(p){
+      if(p.id!==pid)return p;
+      return Object.assign({},p,{tasks:p.tasks.map(function(t){
+        if(t.id!==tid)return t;
+        return Object.assign({},t,{subtasks:(t.subtasks||[]).map(function(s){
+          return s.id===sid?Object.assign({},s,changes):s;
+        })});
+      })});
+    });
+    setProjects(u);persist(u);
+  }
   function saveEdit(){if(!editT)return;updTask(editT.id,editT);setEditT(null);}
 
   function exportBackup(){
@@ -622,7 +667,7 @@ function App(){
   );
 
   // Render Gantt view
-  if(view==="gantt")return <GanttView projects={projects} goHome={goHome}/>;
+  if(view==="gantt")return <GanttView projects={projects} goHome={goHome} onReviseDate={updSubGlobal}/>;
 
   return(
     <div style={{minHeight:"100vh",background:"#111318",color:"#e8e8f0",fontFamily:"system-ui,sans-serif",paddingBottom:40}}>
