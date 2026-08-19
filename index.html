@@ -387,10 +387,9 @@ function GanttView(props){
                               onClick={function(e){e.stopPropagation();}}
                               onChange={function(e){
                                 var v=e.target.value;
-                                setEditingRow(null);
                                 if(v)onReviseDate(r.project.id,r.task.id,r.anchorSub.id,v);
                               }}
-                              onBlur={function(){setTimeout(function(){setEditingRow(function(cur){return cur===r.rowKey?null:cur;});},250);}}
+                              onBlur={function(){setTimeout(function(){setEditingRow(function(cur){return cur===r.rowKey?null:cur;});},200);}}
                               style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",zIndex:4,
                                 background:"#1a1d27",border:"1px solid "+(isOD?"#E24B4A":"#7F77DD"),borderRadius:6,
                                 padding:"2px 6px",fontSize:11,color:"#fff",outline:"none",colorScheme:"dark"}}
