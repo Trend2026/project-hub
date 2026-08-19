@@ -358,11 +358,11 @@ function GanttView(props){
                               position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               {isTarget&&(
                                 <div
-                                  onClick={isOD?function(e){e.stopPropagation();setEditingRow(r.rowKey);}:undefined}
-                                  title={isOD?"Overdue — click to revise the date":""}
+                                  onClick={function(e){e.stopPropagation();setEditingRow(r.rowKey);}}
+                                  title="Click to revise the date"
                                   style={{width:r.isRecurringInstance?12:16,height:r.isRecurringInstance?12:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
-                                    opacity:r.isRecurringInstance?0.55:1,cursor:isOD?"pointer":"default",
-                                    outline:isOD?"1px solid rgba(255,255,255,0.25)":"none",outlineOffset:2,
+                                    opacity:r.isRecurringInstance?0.55:1,cursor:"pointer",
+                                    outline:"1px solid rgba(255,255,255,0.25)",outlineOffset:2,
                                     boxShadow:r.isRecurringInstance?"none":"0 0 6px "+diamondColor+"88",zIndex:2}}/>
                               )}
                             </div>
@@ -379,19 +379,20 @@ function GanttView(props){
                             </div>
                           );
                         })()}
-                        {/* Inline date-revision control, opened by clicking an overdue diamond */}
+                        {/* Inline date-revision control, opened by clicking any diamond */}
                         {isEditing&&(function(){
                           var left=((dIdx+1)*dayPct)+"%";
                           return(
                             <input type="date" autoFocus defaultValue={r.anchorSub.date}
                               onClick={function(e){e.stopPropagation();}}
                               onChange={function(e){
-                                if(e.target.value)onReviseDate(r.project.id,r.task.id,r.anchorSub.id,e.target.value);
+                                var v=e.target.value;
                                 setEditingRow(null);
+                                if(v)onReviseDate(r.project.id,r.task.id,r.anchorSub.id,v);
                               }}
-                              onBlur={function(){setEditingRow(null);}}
+                              onBlur={function(){setTimeout(function(){setEditingRow(function(cur){return cur===r.rowKey?null:cur;});},250);}}
                               style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",zIndex:4,
-                                background:"#1a1d27",border:"1px solid #E24B4A",borderRadius:6,
+                                background:"#1a1d27",border:"1px solid "+(isOD?"#E24B4A":"#7F77DD"),borderRadius:6,
                                 padding:"2px 6px",fontSize:11,color:"#fff",outline:"none",colorScheme:"dark"}}
                             />
                           );
