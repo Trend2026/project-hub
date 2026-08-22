@@ -99,6 +99,46 @@ function AutoTA(props){
     style={Object.assign({},props.style,{overflow:"hidden",resize:"none"})}/>;
 }
 
+function NoteEditor(props){
+  var ref=React.useRef(null);
+  React.useEffect(function(){
+    if(ref.current){ref.current.style.height="auto";ref.current.style.height=ref.current.scrollHeight+"px";}
+  });
+  function insertBullet(){
+    var el=ref.current;
+    if(!el)return;
+    var start=el.selectionStart,end=el.selectionEnd;
+    var val=props.value||"";
+    var before=val.slice(0,start);
+    var needsNL=before.length>0&&before[before.length-1]!=="\n";
+    var insert=(needsNL?"\n":"")+"• ";
+    var newVal=val.slice(0,start)+insert+val.slice(end);
+    props.onChange(newVal);
+    requestAnimationFrame(function(){
+      if(ref.current){var pos=start+insert.length;ref.current.focus();ref.current.setSelectionRange(pos,pos);}
+    });
+  }
+  return(
+    <div style={{marginTop:6}} onClick={function(e){e.stopPropagation();}}>
+      <div style={{display:"flex",gap:6,marginBottom:4}}>
+        <button type="button" onClick={insertBullet}
+          style={{background:"transparent",border:"1px solid #2a2d3a",borderRadius:5,padding:"1px 7px",fontSize:11,color:"#888",cursor:"pointer"}}>
+          • Bullet
+        </button>
+      </div>
+      <textarea ref={ref} value={props.value||""} draggable={false}
+        onChange={function(e){props.onChange(e.target.value);}}
+        placeholder="Write a note..."
+        style={{width:"100%",minHeight:60,background:"#0d0e13",border:"1px solid #2a2d3a",borderRadius:7,
+          color:"#ddd",fontSize:12,lineHeight:1.6,padding:"8px 10px",outline:"none",resize:"vertical",
+          fontFamily:"inherit",boxSizing:"border-box",overflow:"hidden"}}
+        onMouseDown={function(e){e.stopPropagation();}}
+        onDragStart={function(e){e.stopPropagation();e.preventDefault();}}
+      />
+    </div>
+  );
+}
+
 function PBar(props){
   var allSubs=props.tasks.flatMap(function(t){return t.subtasks||[];});
   var done=allSubs.filter(function(s){return s.done;}).length;
@@ -405,6 +445,7 @@ function App(){
   var r20=useState("");   var search=r20[0];    var setSearch=r20[1];
   var r21=useState(false);var searchFocused=r21[0];var setSearchFocused=r21[1];
   var r22=useState(function(){return lsGet("timelinePos",9999);});var timelinePos=r22[0];var setTimelinePos=r22[1];
+  var r23=useState({});   var openNotes=r23[0];  var setOpenNotes=r23[1];
 
   var dragP=useRef(null);var dragPO=useRef(null);
   var dragT=useRef(null);var dragTO=useRef(null);
@@ -453,8 +494,9 @@ function App(){
     return out;
   })():[];
 
-  function openP(id){setAid(id);setView("detail");setActiveTask(null);}
-  function goHome(){setView("home");setAid(null);setActiveTask(null);}
+  function openP(id){setAid(id);setView("detail");setActiveTask(null);setOpenNotes({});}
+  function goHome(){setView("home");setAid(null);setActiveTask(null);setOpenNotes({});}
+  function switchTask(id){setActiveTask(id);setOpenNotes({});}
   function openGantt(){setView("gantt");}
 
   // Combined home-grid slots: project cards + the Timeline card, in one draggable sequence.
@@ -869,14 +911,14 @@ function App(){
                   style={{marginBottom:6}}
                 >
                   <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E55":"#222",background:isOpen?"rgba(212,83,126,0.07)":"#111318"})}
-                    onClick={function(){setActiveTask(isOpen?null:t.id);}}>
+                    onClick={function(){switchTask(isOpen?null:t.id);}}>
                     <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}} onClick={function(e){e.stopPropagation();}}>⠿</span>
                     <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
                       {t.name}
                       {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
                     </span>
                     <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px",flexShrink:0}}
-                      onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending",date:""}])});setActiveTask(t.id);}}>+Sub</button>
+                      onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending",date:""}])});switchTask(t.id);}}>+Sub</button>
                     <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px",flexShrink:0}}
                       onClick={function(e){e.stopPropagation();setEditT(Object.assign({},t));}}>Edit</button>
                     <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px",flexShrink:0}}
@@ -890,6 +932,8 @@ function App(){
                         var stColor=s.done?"#555":(SC[s.status||"pending"]||"#E8832A");
                         var subOverdue=s.status==="development"&&s.date&&s.date<tod();
                         var dueSoon=!subOverdue&&s.status==="development"&&s.date&&daysUntil(s.date)>=0&&daysUntil(s.date)<=7;
+                        var hasNote=!!(s.notes&&s.notes.trim());
+                        var noteOpen=openNotes.hasOwnProperty(s.id)?openNotes[s.id]:hasNote;
                         return(
                           <div key={s.id} draggable={true}
                             onDragStart={function(e){sdStart(e,sidx);}}
@@ -940,6 +984,13 @@ function App(){
                                     />
                                   </React.Fragment>
                                 )}
+                                <button title={hasNote?"View / edit note":"Add a note"}
+                                  onClick={function(e){e.stopPropagation();setOpenNotes(function(o){var n=Object.assign({},o);n[s.id]=!noteOpen;return n;});}}
+                                  style={{background:hasNote?"rgba(29,158,117,0.12)":"transparent",
+                                    border:"1px solid "+(hasNote?"#1D9E75":"#2a2d3a"),borderRadius:6,
+                                    padding:"2px 6px",fontSize:11,color:hasNote?"#1D9E75":"#555",cursor:"pointer",lineHeight:1.4,whiteSpace:"nowrap"}}>
+                                  📝 {hasNote?"Note":"Add Note"}
+                                </button>
                                 <select value={s.status||"pending"}
                                   onChange={function(e){updSub(t.id,s.id,{status:e.target.value});}}
                                   style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
@@ -949,6 +1000,11 @@ function App(){
                                   onClick={function(){delSub(t.id,s.id);}}>x</button>
                               </div>
                             </div>
+                            {noteOpen&&(
+                              <NoteEditor value={s.notes||""}
+                                onChange={function(val){updSub(t.id,s.id,{notes:val});}}
+                              />
+                            )}
                           </div>
                         );
                       })}
