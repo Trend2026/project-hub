@@ -437,7 +437,7 @@ function App(){
   var r12=useState(false);var impOpen=r12[0];   var setImpOpen=r12[1];
   var r13=useState(null); var impPrev=r13[0];   var setImpPrev=r13[1];
   var r14=useState("");   var impErr=r14[0];    var setImpErr=r14[1];
-  var r15=useState(null); var activeTask=r15[0];var setActiveTask=r15[1];
+  var r15=useState({});   var openTasks=r15[0];  var setOpenTasks=r15[1];
   var r16=useState(false);var showBkup=r16[0];  var setShowBkup=r16[1];
   var r17=useState(null); var editColorId=r17[0];var setEditColorId=r17[1];
   var r18=useState(function(){return lsGet(COLOR_KEY,DEFAULT_COLORS);});var palette=r18[0];var setPalette=r18[1];
@@ -494,9 +494,31 @@ function App(){
     return out;
   })():[];
 
-  function openP(id){setAid(id);setView("detail");setActiveTask(null);setOpenNotes({});}
-  function goHome(){setView("home");setAid(null);setActiveTask(null);setOpenNotes({});}
-  function switchTask(id){setActiveTask(id);setOpenNotes({});}
+  function openP(id){
+    setAid(id);setView("detail");setOpenNotes({});
+    var pr=projects.find(function(p){return p.id===id;});
+    var def={};
+    if(pr){
+      pr.tasks.forEach(function(t){
+        var hasDev=(t.subtasks||[]).some(function(s){return s.status==="development"&&!s.done;});
+        if(hasDev)def[t.id]=true;
+      });
+    }
+    setOpenTasks(def);
+  }
+  function goHome(){setView("home");setAid(null);setOpenTasks({});setOpenNotes({});}
+  function toggleTask(t){
+    var willOpen=!openTasks[t.id];
+    setOpenTasks(function(o){var n=Object.assign({},o);n[t.id]=willOpen;return n;});
+    if(!willOpen){
+      var ids=(t.subtasks||[]).map(function(s){return s.id;});
+      setOpenNotes(function(o){
+        var n=Object.assign({},o);
+        ids.forEach(function(id){delete n[id];});
+        return n;
+      });
+    }
+  }
   function openGantt(){setView("gantt");}
 
   // Combined home-grid slots: project cards + the Timeline card, in one draggable sequence.
@@ -902,7 +924,7 @@ function App(){
             {proj.tasks.map(function(t,idx){
               var subs=t.subtasks||[];
               var subDone=subs.filter(function(s){return s.done;}).length;
-              var isOpen=activeTask===t.id;
+              var isOpen=!!openTasks[t.id];
               return(
                 <div key={t.id} draggable={true}
                   onDragStart={function(e){tdStart(e,idx);}}
@@ -911,14 +933,14 @@ function App(){
                   style={{marginBottom:6}}
                 >
                   <div style={Object.assign({},st.trow,{borderColor:isOpen?"#D4537E55":"#222",background:isOpen?"rgba(212,83,126,0.07)":"#111318"})}
-                    onClick={function(){switchTask(isOpen?null:t.id);}}>
+                    onClick={function(){toggleTask(t);}}>
                     <span style={{color:"#444",fontSize:14,cursor:"grab",flexShrink:0}} onClick={function(e){e.stopPropagation();}}>⠿</span>
                     <span style={{flex:1,fontSize:13,fontWeight:isOpen?600:400,color:isOpen?"#D4537E":"#e0e0e0"}}>
                       {t.name}
                       {subs.length>0&&<span style={{marginLeft:8,fontSize:10,color:isOpen?"rgba(212,83,126,0.6)":"#555"}}>{subDone}/{subs.length}</span>}
                     </span>
                     <button style={{background:"none",border:"none",color:"#1D9E75",cursor:"pointer",fontSize:11,padding:"2px 6px",flexShrink:0}}
-                      onClick={function(e){e.stopPropagation();updTask(t.id,{subtasks:subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending",date:""}])});switchTask(t.id);}}>+Sub</button>
+                      onClick={function(e){e.stopPropagation();var newSubs=subs.concat([{id:uid(),name:"New subtask",done:false,status:"pending",date:""}]);updTask(t.id,{subtasks:newSubs});setOpenTasks(function(o){var n=Object.assign({},o);n[t.id]=true;return n;});}}>+Sub</button>
                     <button style={{background:"none",border:"none",color:"#7F77DD",cursor:"pointer",fontSize:12,padding:"2px 6px",flexShrink:0}}
                       onClick={function(e){e.stopPropagation();setEditT(Object.assign({},t));}}>Edit</button>
                     <button style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"2px 4px",flexShrink:0}}
