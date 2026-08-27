@@ -281,7 +281,7 @@ function GanttView(props){
         <div style={{marginLeft:"auto",display:"flex",gap:14,fontSize:11,color:"#555"}}>
           <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:2,height:12,background:"#E24B4A",display:"inline-block"}}/>Today</span>
           <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,background:"#fff",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>To Do</span>
-          <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,background:"#E24B4A",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Overdue</span>
+          <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:14,height:14,background:"#FF1744",borderRadius:2,display:"inline-block",transform:"rotate(45deg)"}}/>Overdue</span>
         </div>
       </div>
 
@@ -342,10 +342,10 @@ function GanttView(props){
                 return(
                   <div key={i} style={{width:dayPct+"%",flexShrink:0,
                     borderRight:"1px solid #1a1d27",
-                    background:isToday?"rgba(230,75,74,0.2)":isPast?"rgba(230,50,50,0.06)":isWeekend?"rgba(255,255,255,0.02)":"transparent",
+                    background:isToday?"rgba(230,75,74,0.2)":isPast?"rgba(0,230,118,0.10)":isWeekend?"rgba(255,255,255,0.02)":"transparent",
                     display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1}}>
-                    <span style={{fontSize:9,fontWeight:700,color:isToday?"#E24B4A":isPast?"#E24B4A66":isWeekend?"#555":"#444"}}>{dayNames[d.getDay()]}</span>
-                    <span style={{fontSize:11,fontWeight:700,color:isToday?"#E24B4A":isPast?"#E24B4A88":"#666"}}>{d.getDate()}</span>
+                    <span style={{fontSize:9,fontWeight:700,color:isToday?"#E24B4A":isPast?"#00E676":isWeekend?"#555":"#444"}}>{dayNames[d.getDay()]}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:isToday?"#E24B4A":isPast?"#00E676":"#666"}}>{d.getDate()}</span>
                   </div>
                 );
               })}
@@ -365,14 +365,14 @@ function GanttView(props){
                       var isToday=dStr===todayStr;
                       return <div key={i} style={{width:dayPct+"%",flexShrink:0,
                         borderRight:"1px solid #1a1a2a",
-                        background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent"}}/>;
+                        background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(0,230,118,0.10)":"transparent"}}/>;
                     })}
                   </div>
 
                   {pRows.map(function(r){
                     var dIdx=dayIndex(r.date);
                     var isOD=r.date<todayStr&&!r.sub.done;
-                    var diamondColor=r.sub.done?"#639922":isOD?"#E24B4A":p.color;
+                    var diamondColor=r.sub.done?"#639922":isOD?"#FF1744":p.color;
                     return(
                       <div key={r.rowKey} style={{display:"flex",height:ROW_H,position:"relative",borderBottom:"1px solid #1a1a2a"}}>
                         {/* Day columns */}
@@ -384,7 +384,7 @@ function GanttView(props){
                           return(
                             <div key={i} style={{width:dayPct+"%",flexShrink:0,height:"100%",
                               borderRight:"1px solid #1a1a2a",
-                              background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(230,50,50,0.07)":"transparent",
+                              background:isToday?"rgba(230,75,74,0.15)":isPast?"rgba(0,230,118,0.10)":"transparent",
                               position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
                               {isTarget&&(
                                 <div style={{width:r.isRecurringInstance?12:16,height:r.isRecurringInstance?12:16,background:diamondColor,transform:"rotate(45deg)",borderRadius:2,
@@ -399,7 +399,7 @@ function GanttView(props){
                           var left=((dIdx+1)*dayPct)+"%";
                           return(
                             <div style={{position:"absolute",left:left,top:"50%",transform:"translateY(-50%)",
-                              fontSize:10,color:isOD?"#E24B4A":r.sub.done?"#444":"#777",
+                              fontSize:10,color:isOD?"#FF1744":r.sub.done?"#444":"#777",
                               whiteSpace:"nowrap",pointerEvents:"none",fontWeight:isOD?600:400,zIndex:3}}>
                               {isOD?" OVERDUE":r.sub.done?" ✓":""}
                             </div>
