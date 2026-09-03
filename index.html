@@ -419,6 +419,35 @@ function GanttView(props){
 }
 
 // ── MAIN APP ─────────────────────────────────────────────────
+function PriorityList(props){
+  var items=props.items;
+  return(
+    <div>
+      <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+        Priority Tasks{items.length>0&&<span style={{color:"#E8832A"}}>({items.length})</span>}
+      </div>
+      {items.length===0&&<div style={{fontSize:12,color:"#444",fontStyle:"italic",lineHeight:1.5}}>No priority tasks yet. Check the orange box next to a subtask's status to pin it here.</div>}
+      {items.map(function(it){
+        return(
+          <div key={it.sub.id}
+            style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",borderRadius:8,
+              background:"rgba(232,131,42,0.06)",border:"1px solid rgba(232,131,42,0.3)",marginBottom:6,cursor:"pointer"}}
+            onClick={function(){props.openP(it.project.id);}}>
+            <input type="checkbox" checked={true} readOnly
+              onClick={function(e){e.stopPropagation();props.updSub(it.task.id,it.sub.id,{priority:false},it.project.id);}}
+              title="Remove from Priority"
+              style={{accentColor:"#E8832A",width:15,height:15,marginTop:1,cursor:"pointer",flexShrink:0}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,color:"#eee",lineHeight:1.4,wordBreak:"break-word"}}>{it.sub.name}</div>
+              <div style={{fontSize:10,color:it.project.color,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.project.name} · {it.task.name}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function App(){
   var useState=React.useState,useEffect=React.useEffect,useRef=React.useRef,useCallback=React.useCallback;
   var isMobile=useIsMobile();
@@ -476,6 +505,13 @@ function App(){
 
   var proj=projects.find(function(p){return p.id===aid;});
   var totalT=projects.flatMap(function(p){return p.tasks;}).length;
+
+  var priorityItems=projects.flatMap(function(p){
+    return p.tasks.flatMap(function(t){
+      return (t.subtasks||[]).filter(function(s){return s.priority&&!s.done;})
+        .map(function(s){return {project:p,task:t,sub:s};});
+    });
+  });
 
   var searchResults=search.trim().length>1?(function(){
     var q=search.trim().toLowerCase();
@@ -604,9 +640,10 @@ function App(){
     });
     setProjects(u);persist(u);
   }
-  function updSub(tid,sid,changes){
+  function updSub(tid,sid,changes,pid){
+    var targetId=pid||aid;
     var u=projects.map(function(p){
-      return p.id===aid?Object.assign({},p,{tasks:p.tasks.map(function(t){
+      return p.id===targetId?Object.assign({},p,{tasks:p.tasks.map(function(t){
         return t.id===tid?Object.assign({},t,{subtasks:t.subtasks.map(function(s){
           return s.id===sid?Object.assign({},s,changes):s;
         })}):t;
@@ -731,7 +768,8 @@ function App(){
 
       {/* HOME */}
       {view==="home"&&(
-        <div>
+        <div style={{display:"flex",flexDirection:isMobile?"column":"row"}}>
+        <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",gap:16,flexWrap:"wrap",padding:isMobile?"14px 14px 0":"16px 24px 0"}}>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{projects.length}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Projects</div></div>
             <div style={st.sCard}><div style={{fontSize:22,fontWeight:600,color:"#fff"}}>{totalT}</div><div style={{fontSize:11,color:"#666",marginTop:2,textTransform:"uppercase",letterSpacing:0.5}}>Total Tasks</div></div>
@@ -792,7 +830,7 @@ function App(){
           </div>
 
           {/* PROJECT GRID */}
-          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(auto-fill,minmax(240px,1fr))",gap:isMobile?12:16,padding:isMobile?"18px 14px 0":"20px 24px 0"}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(6,1fr)",gap:isMobile?12:16,padding:isMobile?"18px 14px 0":"20px 24px 0"}}>
             {slots.map(function(slot,idx){
 
               if(slot.type==="gantt"){
@@ -913,6 +951,12 @@ function App(){
             })}
           </div>
         </div>
+
+        {/* GLOBAL SIDEBAR - PRIORITY TASKS */}
+        <div style={{width:isMobile?"100%":260,minWidth:isMobile?0:220,borderLeft:isMobile?"none":"1px solid #2a2d3a",borderTop:isMobile?"1px solid #2a2d3a":"none",background:"#13151e",padding:isMobile?"16px 14px":"20px 14px",overflowY:isMobile?"visible":"auto",maxHeight:isMobile?"none":"calc(100vh - 53px)",position:isMobile?"static":"sticky",top:isMobile?"auto":53}}>
+          <PriorityList items={priorityItems} openP={openP} updSub={updSub}/>
+        </div>
+        </div>
       )}
 
       {/* DETAIL */}
@@ -1013,6 +1057,13 @@ function App(){
                                     padding:"2px 6px",fontSize:11,color:hasNote?"#1D9E75":"#555",cursor:"pointer",lineHeight:1.4,whiteSpace:"nowrap"}}>
                                   📝 {hasNote?"Note":"Add Note"}
                                 </button>
+                                <label title="Mark as Priority" onClick={function(e){e.stopPropagation();}}
+                                  style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer",flexShrink:0}}>
+                                  <input type="checkbox" checked={!!s.priority}
+                                    onChange={function(e){updSub(t.id,s.id,{priority:e.target.checked});}}
+                                    style={{accentColor:"#E8832A",width:15,height:15,cursor:"pointer"}}/>
+                                  <span style={{fontSize:10,color:"#E8832A",fontWeight:600}}>Priority</span>
+                                </label>
                                 <select value={s.status||"pending"}
                                   onChange={function(e){updSub(t.id,s.id,{status:e.target.value});}}
                                   style={{background:"#111318",border:"1px solid #2a2d3a",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,color:SC[s.status||"pending"],cursor:"pointer",outline:"none"}}>
@@ -1038,34 +1089,28 @@ function App(){
           </div>
 
           {/* SIDEBAR */}
-          <div style={{width:isMobile?"100%":"30%",minWidth:isMobile?0:200,borderLeft:isMobile?"none":"1px solid #2a2d3a",borderTop:isMobile?"1px solid #2a2d3a":"none",background:"#13151e",padding:isMobile?"16px 14px":"20px 14px",overflowY:isMobile?"visible":"auto",maxHeight:isMobile?"none":"calc(100vh - 53px)",position:isMobile?"static":"sticky",top:isMobile?"auto":53}}>
-            <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>All Projects</div>
-            {projects.map(function(p){
-              var isAct=p.id===aid;
-              var allSubs=p.tasks.flatMap(function(t){return t.subtasks||[];});
-              var pDone=allSubs.filter(function(s){return s.done;}).length;
-              var pPct=allSubs.length?Math.round(pDone/allSubs.length*100):0;
-              return(
-                <div key={p.id} onClick={function(){openP(p.id);}}
-                  style={{padding:"10px 12px",borderRadius:9,marginBottom:8,cursor:"pointer",
-                    background:isAct?"rgba(127,119,221,0.15)":"transparent",
-                    border:"1px solid "+(isAct?p.color:"#222"),transition:"all .15s"}}
-                  onMouseEnter={function(e){if(!isAct){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.borderColor="#333";}}}
-                  onMouseLeave={function(e){if(!isAct){e.currentTarget.style.background="transparent";e.currentTarget.style.borderColor="#222";}}}
-                >
-                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
-                    <span style={{fontSize:12,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#bbb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <div style={{flex:1,height:3,borderRadius:2,background:"rgba(255,255,255,0.08)"}}>
-                      <div style={{height:3,borderRadius:2,background:p.color,width:pPct+"%"}}/>
-                    </div>
-                    <span style={{fontSize:10,color:"#555"}}>{pPct}%</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{width:isMobile?"100%":260,minWidth:isMobile?0:220,borderLeft:isMobile?"none":"1px solid #2a2d3a",borderTop:isMobile?"1px solid #2a2d3a":"none",background:"#13151e",padding:isMobile?"16px 14px":"20px 14px",overflowY:isMobile?"visible":"auto",maxHeight:isMobile?"none":"calc(100vh - 53px)",position:isMobile?"static":"sticky",top:isMobile?"auto":53}}>
+            <div style={{fontSize:11,fontWeight:600,color:"#555",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Projects</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:20}}>
+              {projects.map(function(p){
+                var isAct=p.id===aid;
+                return(
+                  <button key={p.id} onClick={function(){openP(p.id);}} title={p.name}
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:99,cursor:"pointer",
+                      background:isAct?"rgba(127,119,221,0.18)":"rgba(255,255,255,0.03)",
+                      border:"1px solid "+(isAct?p.color:"#2a2d3a"),transition:"all .15s",
+                      fontSize:11,fontWeight:isAct?600:400,color:isAct?"#D4537E":"#999",
+                      maxWidth:110,whiteSpace:"nowrap"}}
+                    onMouseEnter={function(e){if(!isAct){e.currentTarget.style.background="rgba(255,255,255,0.07)";e.currentTarget.style.borderColor="#444";}}}
+                    onMouseLeave={function(e){if(!isAct){e.currentTarget.style.background="rgba(255,255,255,0.03)";e.currentTarget.style.borderColor="#2a2d3a";}}}
+                  >
+                    <span style={{width:7,height:7,borderRadius:"50%",background:p.color,flexShrink:0,display:"inline-block"}}/>
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <PriorityList items={priorityItems} openP={openP} updSub={updSub}/>
           </div>
         </div>
       )}
